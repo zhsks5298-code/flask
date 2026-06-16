@@ -1,0 +1,88 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Health - 시스템 상태{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-heart-pulse text-info"></i> 시스템 통합 상태 모니터링</h2>
+        <div class="text-muted small">새로고침: {{ now().strftime('%H:%M:%S') if now else '' }}</div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card bg-dark border-{{ 'success' if db_ok else 'danger' }} h-100 shadow">
+                <div class="card-body text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-database-check fs-1 text-{{ 'success' if db_ok else 'danger' }} {{ 'health-glow-green' if db_ok else 'health-glow-red' }}"></i>
+                    </div>
+                    <h4 class="text-white">Main Database</h4>
+                    <p class="text-secondary mb-4">MySQL 서버 연결 상태</p>
+                    <span class="badge rounded-pill bg-{{ 'success' if db_ok else 'danger' }} px-4 py-2 fs-6">
+                        {{ 'ONLINE' if db_ok else 'DISCONNECTED' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-dark border-{{ 'success' if rpi_ok else 'warning' }} h-100 shadow">
+                <div class="card-body text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-router fs-1 text-{{ 'success' if rpi_ok else 'warning' }} {{ 'health-glow-blue' if rpi_ok else '' }}"></i>
+                    </div>
+                    <h4 class="text-white">Edge Device</h4>
+                    <p class="text-secondary mb-1">Raspberry Pi 통신 상태</p>
+                    <div class="mb-4">
+                        <span class="badge rounded-pill bg-{{ 'success' if rpi_ok else 'warning text-dark' }} px-4 py-2 fs-6">
+                            {{ 'ACTIVE' if rpi_ok else 'NO RESPONSE' }}
+                        </span>
+                    </div>
+                    {% if rpi_age is not none %}
+                    <div class="small text-{{ 'success' if rpi_ok else 'danger' }}">
+                        <i class="bi bi-stopwatch"></i> Last Sync: {{ rpi_age }}s ago
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-dark border-{{ 'danger' if error_count > 0 else 'primary' }} h-100 shadow">
+                <div class="card-body text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-shield-exclamation fs-1 text-{{ 'danger' if error_count > 0 else 'primary' }}"></i>
+                    </div>
+                    <h4 class="text-white">System Safety</h4>
+                    <p class="text-secondary mb-4">최근 1시간 내 주요 에러</p>
+                    <div class="display-6 fw-bold text-{{ 'danger' if error_count > 0 else 'primary' }}">
+                        {{ error_count }} <small class="fs-4">건</small>
+                    </div>
+                    {% if error_count > 0 %}
+                    <a href="{{ url_for('events.index') }}?severity=critical" class="btn btn-sm btn-outline-danger mt-3">로그 확인하기</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 p-4 bg-secondary bg-opacity-10 rounded border border-secondary border-opacity-25">
+        <h5 class="text-white small mb-3 text-uppercase"><i class="bi bi-info-circle"></i> Monitoring Information</h5>
+        <ul class="text-secondary small mb-0">
+            <li>데이터베이스 연결은 SQLAlchemy `text('SELECT 1')` 쿼리를 통해 5초마다 검증됩니다.</li>
+            <li>라즈베리파이 상태는 최신 센서 데이터(`SensorReading`) 수신 시간을 기준으로 판단합니다 (기준: 60초).</li>
+            <li>시스템 에러 카운트는 `Critical` 및 `Emergency` 등급의 이벤트만 포함합니다.</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    /* 상태별 은은한 발광 효과 */
+    .health-glow-green { text-shadow: 0 0 15px rgba(25, 135, 84, 0.6); }
+    .health-glow-red { text-shadow: 0 0 15px rgba(220, 53, 69, 0.6); }
+    .health-glow-blue { text-shadow: 0 0 15px rgba(13, 110, 253, 0.6); }
+    
+    .card { transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-5px); }
+</style>
+{% endblock %}

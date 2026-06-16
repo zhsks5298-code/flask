@@ -1,0 +1,361 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Stats - 통계{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-bar-chart-line text-primary"></i> 생산 통계</h2>
+        <a href="{{ url_for('stats.index') }}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-arrow-clockwise"></i> 새로고침
+        </a>
+    </div>
+
+    <!-- KPI 카드 4개 -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100" id="stats-card-yield">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-check-circle text-success"></i> 오늘 양품률</div>
+                    <div class="fs-2 fw-bold text-success" id="stats-kpi-yield">{{ kpi.pass_rate }}<span class="fs-5">%</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100" id="stats-card-total">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-stack text-info"></i> 오늘 총 검사</div>
+                    <div class="fs-2 fw-bold text-info" id="stats-kpi-total">{{ kpi.today_total }}<span class="fs-5"> 건</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-speedometer2 text-warning"></i> 시간당 처리량</div>
+                    <div class="fs-2 fw-bold text-warning">{{ kpi.hourly_rate }}<span class="fs-5"> /h</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-cpu text-primary"></i> 평균 추론 시간</div>
+                    <div class="fs-2 fw-bold text-primary">{{ kpi.avg_inference }}<span class="fs-5"> ms</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트 영역 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary text-white-50 small">
+                    <i class="bi bi-pie-chart"></i> 오늘 판정 분포
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 240px;">
+                        <canvas id="verdictChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary text-white-50 small">
+                    <i class="bi bi-graph-up"></i> 최근 24시간 시간당 처리량
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 240px;">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
+                    <span class="text-white-50 small"><i class="bi bi-box-seam me-1"></i>제품별 처리량 (오늘)</span>
+                    {% for i in range(product_labels|length) %}
+                    <span class="badge bg-primary fs-6 px-3 py-2">
+                        {{ product_labels[i] }} <span class="fw-bold ms-1">{{ product_counts[i] }}건</span>
+                    </span>
+                    {% endfor %}
+                    {% if not product_labels %}<span class="text-muted small">데이터 없음</span>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- YOLO 모델 성능 (D 산출물 — cam1_v1_d1_20260424)            -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <h4 class="text-white mt-4 mb-3">
+        <i class="bi bi-robot text-info"></i> YOLO 모델 성능
+        <small class="text-muted ms-2" style="font-size: 0.7em;">cam1_v1_d1_20260424 · YOLOv8n · 9 classes</small>
+    </h4>
+
+    <!-- 모델 KPI 카드 -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-bullseye text-danger"></i> mAP50</div>
+                    <div class="fs-2 fw-bold text-danger">98.3<span class="fs-5">%</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-crosshair text-success"></i> Precision</div>
+                    <div class="fs-2 fw-bold text-success">96.4<span class="fs-5">%</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-search text-warning"></i> Recall</div>
+                    <div class="fs-2 fw-bold text-warning">97.5<span class="fs-5">%</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1"><i class="bi bi-lightning text-info"></i> 추론 지연 (CPU)</div>
+                    <div class="fs-2 fw-bold text-info">51.9<span class="fs-5"> ms</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confusion Matrix + PR Curve -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary text-white-50 small">
+                    <i class="bi bi-grid-3x3"></i> Confusion Matrix (Normalized)
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ url_for('static', filename='img/model/confusion_matrix_normalized.png') }}"
+                         alt="Confusion Matrix" class="img-fluid rounded"
+                         style="max-height: 400px; cursor: pointer;"
+                         onclick="window.open(this.src, '_blank')">
+                    <div class="text-muted small mt-2">클릭하면 원본 크기로 열립니다</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary text-white-50 small">
+                    <i class="bi bi-graph-up-arrow"></i> Precision-Recall Curve
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ url_for('static', filename='img/model/BoxPR_curve.png') }}"
+                         alt="PR Curve" class="img-fluid rounded"
+                         style="max-height: 400px; cursor: pointer;"
+                         onclick="window.open(this.src, '_blank')">
+                    <div class="text-muted small mt-2">클릭하면 원본 크기로 열립니다</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 추가 성능 곡선 (접힌 상태) -->
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-header bg-transparent border-secondary">
+            <a class="text-white-50 small text-decoration-none" data-bs-toggle="collapse" href="#moreCharts">
+                <i class="bi bi-chevron-down"></i> 추가 성능 곡선 보기 (F1 / Precision / Recall)
+            </a>
+        </div>
+        <div class="collapse" id="moreCharts">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4 text-center">
+                        <img src="{{ url_for('static', filename='img/model/BoxF1_curve.png') }}"
+                             alt="F1 Curve" class="img-fluid rounded"
+                             style="cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                        <div class="text-muted small mt-1">F1 Curve</div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <img src="{{ url_for('static', filename='img/model/BoxP_curve.png') }}"
+                             alt="Precision Curve" class="img-fluid rounded"
+                             style="cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                        <div class="text-muted small mt-1">Precision Curve</div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <img src="{{ url_for('static', filename='img/model/BoxR_curve.png') }}"
+                             alt="Recall Curve" class="img-fluid rounded"
+                             style="cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                        <div class="text-muted small mt-1">Recall Curve</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모델 정보 테이블 -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-header bg-transparent border-secondary text-white-50 small">
+            <i class="bi bi-info-circle"></i> 모델 상세 정보
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-dark table-sm mb-0">
+                <tbody>
+                    <tr><td class="text-muted" style="width:200px;">Model</td><td>YOLOv8n (ONNX)</td></tr>
+                    <tr><td class="text-muted">Classes</td><td>9 (capacitor / regulator / transistor x normal / defective / body)</td></tr>
+                    <tr><td class="text-muted">Dataset</td><td>Roboflow mfg-cam1-top v1</td></tr>
+                    <tr><td class="text-muted">Training</td><td>150 epochs, Google Colab GPU</td></tr>
+                    <tr><td class="text-muted">Best Epoch</td><td>55 / 150</td></tr>
+                    <tr><td class="text-muted">mAP50-95</td><td>0.8266</td></tr>
+                    <tr><td class="text-muted">Inference Backend</td><td>ONNX Runtime 1.25.0, CPUExecutionProvider</td></tr>
+                    <tr><td class="text-muted">Version ID</td><td>cam1_v1_d1_20260424</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#cfd2d6';
+Chart.defaults.borderColor = '#3a3f44';
+Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+var verdictChart = new Chart(document.getElementById('verdictChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['PASS', 'DEFECT', 'HOLD'],
+        datasets: [{
+            data: [
+                {{ verdict_counts['pass'] }},
+                {{ verdict_counts['defect'] }},
+                {{ verdict_counts['hold'] }}
+            ],
+            backgroundColor: ['#198754', '#dc3545', '#ffc107'],
+            borderWidth: 0,
+        }]
+    },
+    options: {
+        plugins: { legend: { position: 'bottom' } },
+        cutout: '60%',
+        responsive: true,
+        maintainAspectRatio: false,
+    }
+});
+
+new Chart(document.getElementById('hourlyChart'), {
+    type: 'line',
+    data: {
+        labels: {{ hourly_labels | tojson }},
+        datasets: [{
+            label: '검사 건수',
+            data: {{ hourly_counts | tojson }},
+            borderColor: '#0dcaf0',
+            backgroundColor: 'rgba(13, 202, 240, 0.15)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        responsive: true,
+        maintainAspectRatio: false,
+    }
+});
+
+new Chart(document.getElementById('productChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ product_labels | tojson }},
+        datasets: [{
+            label: '오늘 검사 건수',
+            data: {{ product_counts | tojson }},
+            backgroundColor: ['#0d6efd', '#6610f2', '#fd7e14', '#6c757d'],
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        indexAxis: 'x',
+        responsive: true,
+        maintainAspectRatio: false,
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// 데모 모드: URL에 ?demo=1 추가 시 활성화
+// 초기값: PASS=207, DEFECT=1, HOLD=2, 총=210
+// ══════════════════════════════════════════════════════════════════════
+(function() {
+    if (!new URLSearchParams(window.location.search).has('demo')) return;
+
+    var demoPass   = 207;
+    var demoDefect = 1;
+    var demoHold   = 2;
+
+    var scenario = [
+        { t: 11,  type: 'pass'   },
+        { t: 25,  type: 'defect' },
+        { t: 38,  type: 'pass'   },
+        { t: 54,  type: 'defect' },
+        { t: 86,  type: 'defect' },
+        { t: 118, type: 'defect' }
+    ];
+
+    function updateStats() {
+        var total = demoPass + demoDefect + demoHold;
+        var passRate = total > 0 ? (demoPass / total * 100).toFixed(1) : '0.0';
+
+        // ID로 직접 접근
+        document.getElementById('stats-kpi-yield').innerHTML = passRate + '<span class="fs-5">%</span>';
+        document.getElementById('stats-kpi-total').innerHTML = total + '<span class="fs-5"> 건</span>';
+
+        // 판정 분포 도넛 차트 업데이트
+        if (verdictChart) {
+            verdictChart.data.datasets[0].data = [demoPass, demoDefect, demoHold];
+            verdictChart.update();
+        }
+    }
+
+    // 깜박임 효과
+    function flashCard(cardId, color) {
+        var card = document.getElementById(cardId);
+        if (!card) return;
+        card.style.transition = 'box-shadow 0.3s ease';
+        card.style.boxShadow = '0 0 25px ' + color;
+        setTimeout(function() { card.style.boxShadow = ''; }, 1500);
+    }
+
+    // 초기값 강제 적용
+    updateStats();
+
+    // 시나리오 스케줄링
+    scenario.forEach(function(evt) {
+        setTimeout(function() {
+            if (evt.type === 'pass') {
+                demoPass++;
+                flashCard('stats-card-yield', 'rgba(25,135,84,0.6)');
+            } else {
+                demoDefect++;
+                flashCard('stats-card-yield', 'rgba(220,53,69,0.6)');
+            }
+            flashCard('stats-card-total', 'rgba(13,202,240,0.6)');
+            updateStats();
+            console.log('[DEMO-STATS ' + evt.t + 's] ' + evt.type.toUpperCase() + ' → P:' + demoPass + ' D:' + demoDefect);
+        }, evt.t * 1000);
+    });
+
+    console.log('[DEMO] Stats 데모 모드 활성화');
+})();
+</script>
+{% endblock %}

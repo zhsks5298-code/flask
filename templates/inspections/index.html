@@ -1,0 +1,124 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Inspections - 검사 이력{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-search text-primary"></i> AI 검사 이력 조회</h2>
+        <span class="text-muted">Total Pages: {{ pagination.page }} / {{ pagination.pages }}</span>
+    </div>
+
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small">판정 결과</label>
+                    <select name="result" class="form-select bg-secondary text-white border-0">
+                        <option value="">전체 결과</option>
+                        {% for v in ['pass','defect','hold'] %}
+                        <option value="{{ v }}" {% if result_filter == v %}selected{% endif %}>{{ v.upper() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small">제품 유형</label>
+                    <select name="product_type" class="form-select bg-secondary text-white border-0">
+                        <option value="">전체 제품</option>
+                        <option value="transistor" {% if product_filter=='transistor' %}selected{% endif %}>트랜지스터</option>
+                        <option value="capacitor" {% if product_filter=='capacitor' %}selected{% endif %}>커패시터</option>
+                        <option value="regulator" {% if product_filter=='regulator' %}selected{% endif %}>레귤레이터</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100"><i class="bi bi-funnel"></i> 필터 적용</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card bg-dark shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead class="text-secondary small border-secondary">
+                        <tr>
+                            <th>ID</th>
+                            <th>검사 시각</th>
+                            <th>제품</th>
+                            <th>결과</th>
+                            <th>신뢰도</th>
+                            <th>결함 내역</th>
+                            <th>CAM2</th>
+                            <th class="text-center">상세</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        {% for i in pagination.items %}
+                        <tr>
+                            <td class="text-muted">{{ i.id }}</td>
+                            <td>{{ i.timestamp.strftime('%m-%d %H:%M:%S') }}</td>
+                            <td><span class="text-info">{{ i.product_type }}</span></td>
+                            <td>
+                                <span class="badge bg-{% if i.result=='pass' %}success{% elif i.result=='defect' %}danger{% else %}warning text-dark{% endif %}">
+                                    {{ i.result.upper() }}
+                                </span>
+                            </td>
+                            <td class="fw-bold">{{ "%.2f"|format(i.yolo_confidence or 0) }}</td>
+                            <td><small class="text-secondary">{{ i.defect_detail or '-' }}</small></td>
+                            <td>
+                                {% if i.cam2_used %}
+                                <i class="bi bi-camera-fill text-success" title="CAM2 사용됨"></i>
+                                {% else %}
+                                <i class="bi bi-camera text-muted" title="CAM1만 사용"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('inspections.detail', id=i.id) }}" class="btn btn-sm btn-outline-light">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">조건에 맞는 검사 이력이 없습니다.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link bg-dark border-secondary text-white" href="?page={{ pagination.prev_num }}&result={{ result_filter }}&product_type={{ product_filter }}">이전</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link bg-primary border-primary">{{ pagination.page }}</span>
+            </li>
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link bg-dark border-secondary text-white" href="?page={{ pagination.next_num }}&result={{ result_filter }}&product_type={{ product_filter }}">다음</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<style>
+    /* 테이블 행에 마우스 올렸을 때 강조 효과 */
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .page-link:hover {
+        background-color: #3d3d3d !important;
+        color: #fff;
+    }
+</style>
+{% endblock %}

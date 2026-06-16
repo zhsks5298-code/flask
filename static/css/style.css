@@ -1,0 +1,441 @@
+/* =====================================================================
+   MFG Dashboard — Light Theme
+   전체 다크 → 밝은 테마 전환
+   템플릿에 박혀 있는 bg-dark / text-white / table-dark 등 부트스트랩
+   다크 클래스들을 CSS에서 전부 밝은 스타일로 덮어씁니다.
+   ===================================================================== */
+
+/* 1. 폰트 로드 (Pretendard — 한글/영문 모두 깔끔) */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+/* 2. 디자인 토큰 */
+:root {
+    --bg-page: #f5f7fa;           /* 전체 배경 */
+    --bg-surface: #ffffff;        /* 카드/서피스 배경 */
+    --bg-surface-alt: #f8fafc;    /* 카드 헤더·보조 영역 */
+    --bg-muted: #eef2f7;          /* 테이블 헤더 등 약한 배경 */
+    --border: #e5e7eb;            /* 기본 테두리 */
+    --border-strong: #d1d5db;     /* 강조 테두리 */
+
+    --text-primary: #1f2937;      /* 본문 */
+    --text-secondary: #4b5563;    /* 보조 */
+    --text-muted: #6b7280;        /* 약한 */
+    --text-heading: #111827;      /* 제목 */
+
+    --brand: #2563eb;             /* 포인트 블루 */
+    --brand-soft: #eff6ff;
+    --success: #16a34a;
+    --success-soft: #ecfdf5;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --warning: #d97706;
+    --warning-soft: #fffbeb;
+    --info: #0891b2;
+    --info-soft: #ecfeff;
+
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.06);
+
+    --radius: 12px;
+    --radius-sm: 8px;
+}
+
+/* 3. 기본 타이포 */
+body {
+    background-color: var(--bg-page) !important;
+    color: var(--text-primary) !important;
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+                 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--text-heading); font-weight: 700; }
+
+/* 템플릿에 박혀 있는 text-white 류를 밝은 배경에 맞게 교정 */
+.text-white { color: var(--text-heading) !important; }
+.text-light { color: var(--text-secondary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: var(--text-muted) !important; }
+
+/* 4. 상태 배너 */
+.status-banner {
+    background-color: var(--bg-surface) !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 10px 20px;
+    color: var(--text-primary);
+}
+
+/* 5. 카드 — 깔끔한 화이트 카드 */
+.card {
+    background-color: var(--bg-surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm) !important;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    color: var(--text-primary);
+}
+.card:hover { box-shadow: var(--shadow-md) !important; }
+
+/* bg-dark 로 되어 있는 카드도 흰 카드로 정리 */
+.card.bg-dark,
+.card[class*="bg-dark"] {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+/* 카드 내부의 text-white → 제목 색으로 강제 변경 */
+.card .text-white,
+.card-header .text-white,
+.card-body .text-white { color: var(--text-heading) !important; }
+
+.card-header {
+    background-color: var(--bg-surface-alt) !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--text-heading) !important;
+    font-weight: 600;
+    padding: 14px 18px;
+    border-top-left-radius: var(--radius) !important;
+    border-top-right-radius: var(--radius) !important;
+}
+
+.card-header.bg-transparent { background-color: var(--bg-surface-alt) !important; }
+
+.card-footer {
+    background-color: var(--bg-surface-alt) !important;
+    border-top: 1px solid var(--border) !important;
+    color: var(--text-muted);
+}
+.card-footer.bg-transparent { background-color: transparent !important; }
+
+.card-body { padding: 18px; }
+
+/* 위험/경고 헤더 배경 (bg-danger bg-opacity-10 등) */
+.card-header.bg-danger,
+.card-header[class*="bg-danger"] {
+    background-color: var(--danger-soft) !important;
+    color: var(--danger) !important;
+    border-bottom: 1px solid rgba(220, 38, 38, 0.2) !important;
+}
+.card-header.bg-warning,
+.card-header[class*="bg-warning"] {
+    background-color: var(--warning-soft) !important;
+    color: var(--warning) !important;
+    border-bottom: 1px solid rgba(217, 119, 6, 0.2) !important;
+}
+.card-header.bg-secondary,
+.card-header[class*="bg-secondary"] {
+    background-color: var(--bg-surface-alt) !important;
+    color: var(--text-heading) !important;
+}
+
+/* 6. 숫자 강조 */
+.display-4 {
+    color: var(--brand) !important;
+    text-shadow: none;
+    font-weight: 700;
+}
+
+/* 판정 결과 */
+.result-pass   { color: var(--success) !important; font-weight: 700; }
+.result-defect { color: var(--danger)  !important; font-weight: 700; }
+.result-hold   { color: var(--warning) !important; font-weight: 700; }
+
+/* 7. 테이블 — 다크/라이트 모두 흰 배경으로 통일 */
+.table,
+.table-dark {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: var(--text-primary) !important;
+    --bs-table-border-color: var(--border) !important;
+    --bs-table-striped-bg: var(--bg-surface-alt) !important;
+    --bs-table-striped-color: var(--text-primary) !important;
+    --bs-table-hover-bg: #f1f5f9 !important;
+    --bs-table-hover-color: var(--text-primary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+    background-color: transparent !important;
+}
+
+.table thead,
+.table-dark thead,
+.thead-dark,
+.table-dark thead th {
+    background-color: var(--bg-muted) !important;
+    color: var(--text-secondary) !important;
+}
+
+.table thead th,
+.table-dark thead th {
+    background-color: var(--bg-muted) !important;
+    color: var(--text-secondary) !important;
+    border-bottom: 1px solid var(--border-strong) !important;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    padding: 12px 14px;
+}
+
+.table tbody tr { border-color: var(--border) !important; }
+.table tbody td {
+    padding: 12px 14px;
+    vertical-align: middle;
+    border-color: var(--border) !important;
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+.table-hover tbody tr:hover,
+.table tbody tr:hover {
+    background-color: #f1f5f9 !important;
+    color: var(--text-primary) !important;
+}
+
+/* table-dark 내부의 text-info/text-muted 등도 밝은 배경에서 선명하게 */
+.table-dark tbody td .text-info { color: var(--info) !important; }
+.table-dark tbody td .text-secondary { color: var(--text-secondary) !important; }
+
+/* 8. 내비게이션 바 — 화이트 + 블루 포인트 */
+.navbar,
+.navbar.navbar-dark,
+.navbar.bg-dark {
+    background-color: var(--bg-surface) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-sm);
+    padding: 12px 20px;
+}
+
+.navbar-brand,
+.navbar-dark .navbar-brand {
+    color: var(--text-heading) !important;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-size: 1.15rem;
+}
+.navbar-brand::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--brand);
+    margin-right: 10px;
+    vertical-align: middle;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.nav-link,
+.navbar-dark .nav-link {
+    color: var(--text-secondary) !important;
+    font-weight: 500;
+    padding: 8px 14px !important;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.nav-link:hover,
+.navbar-dark .nav-link:hover {
+    color: var(--brand) !important;
+    background-color: var(--brand-soft);
+}
+.nav-link.active {
+    color: var(--brand) !important;
+    background-color: var(--brand-soft);
+}
+
+.navbar-text,
+.navbar-dark .navbar-text {
+    color: var(--text-muted) !important;
+    font-size: 0.9rem;
+}
+
+/* 9. 헬스 배지 */
+.badge-connected { background-color: var(--success); color: #fff; }
+.badge-nodata    { background-color: #94a3b8; color: #fff; }
+
+/* 부트스트랩 배지도 밝은 테마에 맞게 살짝 조정 */
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.4em 0.65em;
+    border-radius: 6px;
+}
+
+/* 10. 폼 컨트롤 — bg-secondary text-white 로 박힌 select도 교정 */
+.form-select,
+.form-select.bg-secondary,
+.form-control {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-select.bg-secondary.text-white { color: var(--text-primary) !important; }
+.form-select:focus, .form-control:focus {
+    border-color: var(--brand) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+.form-label { color: var(--text-secondary) !important; font-weight: 500; }
+
+/* 11. 버튼 */
+.btn {
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    padding: 0.45rem 0.9rem;
+    transition: all 0.15s ease;
+}
+.btn-primary {
+    background-color: var(--brand);
+    border-color: var(--brand);
+}
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+}
+.btn-outline-light {
+    color: var(--text-secondary) !important;
+    border-color: var(--border-strong) !important;
+    background-color: var(--bg-surface);
+}
+.btn-outline-light:hover {
+    color: var(--brand) !important;
+    background-color: var(--brand-soft);
+    border-color: var(--brand) !important;
+}
+
+/* 12. 페이지네이션 — bg-dark 로 박힌 page-link 교정 */
+.page-link,
+.page-link.bg-dark {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border) !important;
+}
+.page-link:hover,
+.page-link.bg-dark:hover {
+    background-color: var(--brand-soft) !important;
+    color: var(--brand) !important;
+    border-color: var(--brand) !important;
+}
+.page-item.active .page-link,
+.page-link.bg-primary {
+    background-color: var(--brand) !important;
+    border-color: var(--brand) !important;
+    color: #fff !important;
+}
+
+/* 13. 리스트 그룹 (이벤트 로그 등) */
+.list-group-item,
+.list-group-item.bg-transparent {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+    padding: 12px 16px;
+}
+.list-group-item .text-white { color: var(--text-heading) !important; }
+.list-group-item .text-secondary { color: var(--text-secondary) !important; }
+
+/* 14. alert (flash 메시지) */
+.alert {
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-size: 0.92rem;
+}
+
+/* 15. 테두리 색 유틸 — 다크용 border-secondary 등을 밝은 테마로 */
+.border-secondary { border-color: var(--border) !important; }
+
+/* 16. 스크롤바 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+
+.system-status-strip {
+    background-color: #f8f9fa;
+    font-size: 0.78rem;
+}
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.dot-ok   { background: #16a34a; box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2); }
+.dot-warn { background: #d97706; box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2); }
+.dot-err  { background: #dc2626; animation: alarm-blink 1s infinite; }
+
+@keyframes alarm-blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+}
+
+/* 팁 7 — 빈 상태 디자인 */
+.empty-state {
+    padding: 3rem 1.5rem;
+    text-align: center !important;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.empty-state-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+}
+.empty-state h6 {
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+.empty-state p {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+
+/* 팁 11 — 다크모드 */
+[data-theme="dark"] {
+    --bg-page:        #0f172a;
+    --bg-surface:     #1e293b;
+    --bg-surface-alt: #334155;
+    --bg-muted:       #475569;
+    --border:         #334155;
+    --border-strong:  #475569;
+
+    --text-primary:   #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:     #64748b;
+    --text-heading:   #f8fafc;
+
+    --brand-soft:   rgba(37, 99, 235, 0.15);
+    --success-soft: rgba(22, 163, 74, 0.15);
+    --danger-soft:  rgba(220, 38, 38, 0.15);
+    --warning-soft: rgba(217, 119, 6, 0.15);
+}
+
+[data-theme="dark"] .system-status-strip {
+    background-color: var(--bg-surface-alt);
+}
+
+[data-theme="dark"] .empty-state-icon {
+    background: var(--bg-muted);
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--bg-page); }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; }

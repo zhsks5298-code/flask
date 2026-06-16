@@ -1,0 +1,50 @@
+{% extends base_template|default("base.html") %}
+{% block title %}시스템 설정{% endblock %}
+{% block content %}
+
+<h4 class="mb-3"><i class="bi bi-gear"></i> 시스템 설정</h4>
+<p class="text-muted small mb-4">현재 적용된 시스템 설정값 (읽기 전용)</p>
+
+{% for category, configs in grouped.items() %}
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bi bi-tag me-1"></i> {{ category | upper }}
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:25%">설정 키</th>
+          <th style="width:15%">값</th>
+          <th style="width:8%">단위</th>
+          <th style="width:8%">타입</th>
+          <th>설명</th>
+          <th style="width:12%">유효 범위</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in configs %}
+        <tr>
+          <td><code>{{ c.config_key }}</code></td>
+          <td><strong>{{ c.config_value }}</strong></td>
+          <td class="text-muted">{{ c.unit or '-' }}</td>
+          <td><span class="badge bg-light text-secondary">{{ c.data_type or '-' }}</span></td>
+          <td class="small">{{ c.description or '-' }}</td>
+          <td class="small text-muted">
+            {% if c.min_value is not none and c.max_value is not none %}
+              {{ c.min_value | int }} ~ {{ c.max_value | int }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">등록된 설정이 없습니다.</div>
+{% endfor %}
+
+{% endblock %}

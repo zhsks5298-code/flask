@@ -1,0 +1,21 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-mfg
+    type: influxdb
+    access: proxy
+    url: http://192.168.0.16:8086
+    jsonData:
+      version: Flux
+      organization: mfg
+      defaultBucket: line1-telemetry
+    secureJsonData:
+      token: EtnW-5ZEaV7q1nDcy5yTnpyeenOGKPBIiTiWZFzTNetpYW7qdpF_olQ88imVg_o55aT5GV487qFmEsF6QXR8hQ==
+    isDefault: true
+
+  - name: Prometheus-mfg
+    type: prometheus
+    access: proxy
+    url: http://mfg-prometheus:9090
+    isDefault: false
+    

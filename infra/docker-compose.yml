@@ -1,0 +1,113 @@
+services:
+
+  # ── MySQL ─────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: mfg-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: manufacturing
+      MYSQL_USER: mfg_flask
+      MYSQL_PASSWORD: ${MYSQL_FLASK_PASSWORD}
+    volumes:
+      - mfg-mysql-data:/var/lib/mysql
+      - ../scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── InfluxDB ──────────────────────────────────────────────────
+  influxdb:
+    image: influxdb:2.7
+    container_name: mfg-influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_ADMIN_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: mfg
+      DOCKER_INFLUXDB_INIT_BUCKET: line1-telemetry
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - mfg-influxdb-data:/var/lib/influxdb2
+    ports:
+      - "8086:8086"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Telegraf ──────────────────────────────────────────────────
+  telegraf:
+    image: telegraf:1.30
+    container_name: mfg-telegraf
+    environment:
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      MQTT_TELEGRAF_PASSWORD: ${MQTT_TELEGRAF_PASSWORD}
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    network_mode: host          # Mosquitto(localhost:1883) 접근 위해
+    restart: unless-stopped
+
+  # ── Prometheus ────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: mfg-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - mfg-prometheus-data:/prometheus
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana-oss:10.4.2
+    container_name: mfg-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}   # ✅ env로 분리
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      INFLUX_TOKEN: ${INFLUX_TOKEN}                            # datasource.yml 에서 참조
+    volumes:
+      - mfg-grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ── MQTT Exporter ($SYS 모니터링) ────────────────────────────
+  mqtt-exporter:
+    image: kpetrem/mqtt-exporter
+    container_name: mfg-mqtt-exporter
+    ports:
+      - "9234:9234"
+    environment:
+      MQTT_ADDRESS: 192.168.0.16
+      MQTT_PORT: 1883
+      MQTT_USERNAME: mfg_telegraf
+      MQTT_PASSWORD: ${MQTT_TELEGRAF_PASSWORD}                 # ✅ env로 분리
+      MQTT_TOPIC: "$$SYS/#"
+      PROMETHEUS_PORT: 9234
+    restart: unless-stopped
+
+volumes:
+  mfg-mysql-data:
+    name: mfg-mysql-data
+  mfg-influxdb-data:
+    name: mfg-influxdb-data
+  mfg-prometheus-data:
+    name: mfg-prometheus-data
+  mfg-grafana-data:
+    name: mfg-grafana-data

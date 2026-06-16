@@ -1,0 +1,701 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Dashboard - 스마트 관제 시스템{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-speedometer2 text-warning"></i>
+            {% if base_template == 'base_field.html' %}
+            현장 관리자 대시보드
+            {% else %}
+            시스템 관리자 대시보드
+            {% endif %}
+        </h2>
+        <div class="text-info animate-pulse small"><i class="bi bi-record-circle"></i> Live Monitoring</div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" id="card-total">
+                <div class="card-body">
+                    <h6 class="text-secondary text-uppercase small">오늘 총 검사수</h6>
+                    <h2 class="mb-0" id="kpi-total">{{ stats.total }} <small class="fs-6 text-muted">건</small></h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-success border-4" id="card-pass">
+                <div class="card-body">
+                    <h6 class="text-secondary text-uppercase small">양품수 (PASS)</h6>
+                    <h2 class="text-success mb-0" id="kpi-pass">{{ stats['pass'] }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-danger border-4" id="card-defect">
+                <div class="card-body">
+                    <h6 class="text-secondary text-uppercase small">불량수 (DEFECT)</h6>
+                    <h2 class="text-danger mb-0" id="kpi-defect">{{ stats['defect'] }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" id="card-yield">
+                <div class="card-body">
+                    <h6 class="text-secondary text-uppercase small">오늘의 양품률</h6>
+                    <h2 class="text-info mb-0" id="kpi-yield">{{ stats.yield_rate }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-secondary h-100 shadow">
+                <div class="card-header border-secondary">
+                    <i class="bi bi-cpu"></i> 실시간 환경 센서 (RPi)
+                </div>
+                <div class="card-body p-0">
+                    <div class="row g-0 h-100">
+                        <!-- 온도 -->
+                        <div class="col-4 border-end text-center p-4 d-flex flex-column justify-content-center">
+                            <div class="mb-3">
+                                <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px; background: linear-gradient(135deg, #fff7ed, #ffedd5);">
+                                    <i class="bi bi-thermometer-half" style="font-size: 1.8rem; color: #ea580c;"></i>
+                                </div>
+                            </div>
+                            <div class="text-muted small mb-1 fw-semibold text-uppercase" style="letter-spacing: 0.05em;">Temperature</div>
+                            <h2 class="mb-1" style="color: #ea580c;">
+                                <span id="dash-temp">{{ "%.1f"|format(latest_sensor.temperature) if latest_sensor and latest_sensor.temperature is not none else '--' }}</span><span class="fs-5">°C</span>
+                            </h2>
+                            <div class="mx-auto mt-2" style="width: 80%; height: 6px; border-radius: 3px; background: #f3f4f6; overflow: hidden;">
+                                <div id="dash-temp-bar" style="width: {{ [(latest_sensor.temperature / 45 * 100), 100] | min if latest_sensor and latest_sensor.temperature else 0 }}%; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1" style="width: 80%; margin: 0 auto;">
+                                <span class="text-muted" style="font-size: 0.65rem;">15°C</span>
+                                <span class="text-muted" style="font-size: 0.65rem;">45°C</span>
+                            </div>
+                        </div>
+
+                        <!-- 습도 -->
+                        <div class="col-4 border-end text-center p-4 d-flex flex-column justify-content-center">
+                            <div class="mb-3">
+                                <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px; background: linear-gradient(135deg, #eff6ff, #dbeafe);">
+                                    <i class="bi bi-droplet-half" style="font-size: 1.8rem; color: #2563eb;"></i>
+                                </div>
+                            </div>
+                            <div class="text-muted small mb-1 fw-semibold text-uppercase" style="letter-spacing: 0.05em;">Humidity</div>
+                            <h2 class="mb-1" style="color: #2563eb;">
+                                <span id="dash-humidity">{{ "%.1f"|format(latest_sensor.humidity) if latest_sensor and latest_sensor.humidity is not none else '--' }}</span><span class="fs-5">%</span>
+                            </h2>
+                            <div class="mx-auto mt-2" style="width: 80%; height: 6px; border-radius: 3px; background: #f3f4f6; overflow: hidden;">
+                                <div id="dash-humidity-bar" style="width: {{ [(latest_sensor.humidity / 80 * 100), 100] | min if latest_sensor and latest_sensor.humidity else 0 }}%; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #93c5fd, #2563eb);"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1" style="width: 80%; margin: 0 auto;">
+                                <span class="text-muted" style="font-size: 0.65rem;">30%</span>
+                                <span class="text-muted" style="font-size: 0.65rem;">80%</span>
+                            </div>
+                        </div>
+
+                        <!-- 가스 -->
+                        <div class="col-4 text-center p-4 d-flex flex-column justify-content-center">
+                            <div class="mb-3">
+                                <div id="dash-gas-icon-wrap" class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px; background: linear-gradient(135deg, #ecfdf5, #d1fae5);">
+                                    <i id="dash-gas-icon" class="bi bi-wind" style="font-size: 1.8rem; color: #16a34a;"></i>
+                                </div>
+                            </div>
+                            <div class="text-muted small mb-1 fw-semibold text-uppercase" style="letter-spacing: 0.05em;">Gas Level</div>
+                            <h2 class="mb-1" id="dash-gas-value" style="color: #16a34a;">
+                                {{ latest_sensor.gas_value if latest_sensor else '--' }}<span class="fs-5"> ppm</span>
+                            </h2>
+                            <span id="dash-gas-badge" class="badge rounded-pill bg-{{ 'success' if latest_sensor and latest_sensor.gas_status == 'normal' else 'warning text-dark' if latest_sensor and latest_sensor.gas_status == 'warning' else 'danger' }} px-3 mt-1">
+                                {{ '정상' if latest_sensor and latest_sensor.gas_status == 'normal' else '경고' if latest_sensor and latest_sensor.gas_status == 'warning' else '비상' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-secondary h-100 shadow">
+                <div class="card-header border-secondary">
+                    <i class="bi bi-pie-chart"></i> 오늘의 양품률
+                </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center py-3">
+                    <canvas id="yieldChart" style="max-width: 180px; max-height: 180px;"></canvas>
+                    <div class="mt-2 text-center">
+                        <h3 class="mb-0 text-info">{{ stats.yield_rate }}%</h3>
+                        <small class="text-muted">총 {{ stats.total }}건 기준</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-danger shadow h-100">
+                <div class="card-header bg-danger bg-opacity-10 text-danger border-danger">
+                    <i class="bi bi-bell-fill"></i> 긴급 조치 필요 알람
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 small">
+                        <thead>
+                            <tr class="text-secondary">
+                                <th>시간</th><th>등급</th><th>메시지</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alarm in active_alarms %}
+                            <tr>
+                                <td><span data-ts="{{ alarm.timestamp.isoformat() }}">{{ alarm.timestamp.strftime('%H:%M:%S') }}</span></td>
+                                <td><span class="badge bg-{% if alarm.severity == 'critical' %}danger{% else %}warning text-dark{% endif %}">{{ alarm.severity }}</span></td>
+                                <td>{{ alarm.message }}</td>
+                                <td>
+                                    {% if base_template == 'base_field.html' %}
+                                    <a href="{{ url_for('alarms.index') }}" class="btn btn-xs btn-outline-secondary py-0">보기</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center py-4 text-success"><i class="bi bi-check-all"></i> 현재 활성 알람이 없습니다.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-secondary h-100 shadow">
+                <div class="card-header border-secondary">
+                    <i class="bi bi-list-task"></i> 시스템 이벤트 로그
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for event in recent_events %}
+                        <li class="list-group-item small">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-{{ 'info' if event.severity == 'info' else 'warning' if event.severity == 'warning' else 'danger' }} fw-bold">{{ event.event_type }}</span>
+                                <span class="text-muted" style="font-size: 0.75rem;" data-ts="{{ event.timestamp.isoformat() }}">{{ event.timestamp.strftime('%H:%M:%S') }}</span>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.85rem;">{{ event.message }}</p>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="card-footer border-0 text-center">
+                    {% if base_template == 'base_admin.html' %}
+                    <a href="{{ url_for('events.index') }}" class="text-info text-decoration-none small">전체 로그 보기 ></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .animate-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    .btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; }
+    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    @keyframes fadeInFlash { 0% { background-color: rgba(220,53,69,0.3); } 100% { background-color: transparent; } }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // ── 도넛 차트 (변수 저장) ────────────────────────────────────────────
+    var yieldChart = null;
+    var yieldCtx = document.getElementById('yieldChart');
+    if (yieldCtx) {
+        yieldChart = new Chart(yieldCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['PASS', 'DEFECT', 'HOLD'],
+                datasets: [{
+                    data: [
+                        {{ stats['pass'] }},
+                        {{ stats['defect'] }},
+                        {{ stats.total - stats['pass'] - stats['defect'] }}
+                    ],
+                    backgroundColor: ['#16a34a', '#dc2626', '#d97706'],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── 센서 실시간 폴링 (5초마다) ───────────────────────────────────────
+    async function updateDashboardSensor() {
+        try {
+            const res = await fetch('/sensors/api/data');
+            if (!res.ok) return;
+            const data = await res.json();
+            const l = data.latest;
+
+            const temp = parseFloat(l.temp);
+            document.getElementById('dash-temp').textContent = temp.toFixed(1);
+            document.getElementById('dash-temp-bar').style.width =
+                Math.min(temp / 45 * 100, 100) + '%';
+
+            const humi = parseFloat(l.humidity);
+            document.getElementById('dash-humidity').textContent = humi.toFixed(1);
+            document.getElementById('dash-humidity-bar').style.width =
+                Math.min(humi / 80 * 100, 100) + '%';
+
+            const gas = parseFloat(l.gas);
+            const isNormal  = gas < 400;
+            const isWarning = gas >= 400 && gas < 700;
+
+            const gasValueEl  = document.getElementById('dash-gas-value');
+            const gasBadgeEl  = document.getElementById('dash-gas-badge');
+            const gasIconEl   = document.getElementById('dash-gas-icon');
+            const gasIconWrap = document.getElementById('dash-gas-icon-wrap');
+
+            gasValueEl.innerHTML = gas.toFixed(1) + '<span class="fs-5"> ppm</span>';
+
+            if (isNormal) {
+                gasValueEl.style.color  = '#16a34a';
+                gasBadgeEl.className    = 'badge rounded-pill bg-success px-3 mt-1';
+                gasBadgeEl.textContent  = '정상';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #ecfdf5, #d1fae5)';
+                gasIconEl.className     = 'bi bi-wind';
+                gasIconEl.style.color   = '#16a34a';
+            } else if (isWarning) {
+                gasValueEl.style.color  = '#d97706';
+                gasBadgeEl.className    = 'badge rounded-pill bg-warning text-dark px-3 mt-1';
+                gasBadgeEl.textContent  = '경고';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+                gasIconEl.className     = 'bi bi-exclamation-triangle';
+                gasIconEl.style.color   = '#d97706';
+            } else {
+                gasValueEl.style.color  = '#dc2626';
+                gasBadgeEl.className    = 'badge rounded-pill bg-danger px-3 mt-1';
+                gasBadgeEl.textContent  = '비상';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+                gasIconEl.className     = 'bi bi-exclamation-diamond';
+                gasIconEl.style.color   = '#dc2626';
+            }
+        } catch (e) {
+            console.error('센서 업데이트 실패:', e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 데모 모드가 아닐 때만 실제 센서 폴링
+        if (!new URLSearchParams(window.location.search).has('demo')) {
+            updateDashboardSensor();
+            setInterval(updateDashboardSensor, 5000);
+        }
+    });
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 데모 모드: URL에 ?demo=1 추가 시 활성화
+    // ══════════════════════════════════════════════════════════════════════
+    (function() {
+        if (new URLSearchParams(window.location.search).get('demo') !== '1') return;
+
+        // ── 검사 결과 시나리오 ──────────────────────────────────────────
+        var demoPass   = 207;
+        var demoDefect = 1;
+        var demoHold   = 2;
+
+        var scenario = [
+            { t: 12,  type: 'pass'   },
+            { t: 26,  type: 'defect' },
+            { t: 39,  type: 'pass'   },
+            { t: 55,  type: 'defect' },
+            { t: 87,  type: 'defect' },
+            { t: 119, type: 'defect' }
+        ];
+
+        // ── 센서 시나리오 (초, 온도, 습도, 가스) ────────────────────────
+        var sensorTimeline = [
+            { t: 0,   temp: 24.5, humi: 56.9, gas: 200 },
+            { t: 3,   temp: 24.5, humi: 56.7, gas: 200 },
+            { t: 21,  temp: 24.5, humi: 56.6, gas: 200 },
+            { t: 27,  temp: 24.5, humi: 56.5, gas: 200 },
+            { t: 69,  temp: 24.5, humi: 56.4, gas: 200 },
+            { t: 77,  temp: 24.5, humi: 56.5, gas: 200 },
+            { t: 88,  temp: 24.5, humi: 56.6, gas: 200 },
+            { t: 111, temp: 24.6, humi: 56.5, gas: 200 },
+            { t: 147, temp: 24.6, humi: 56.5, gas: 200 },
+            { t: 153, temp: 24.6, humi: 56.4, gas: 200 },
+            { t: 157, temp: 24.6, humi: 56.5, gas: 200 }
+        ];
+
+        var demoStartTime = Date.now();
+
+        // 현재 시점의 센서값을 반환
+        function getCurrentSensor() {
+            var elapsed = (Date.now() - demoStartTime) / 1000;
+            var current = sensorTimeline[0];
+            for (var i = 0; i < sensorTimeline.length; i++) {
+                if (elapsed >= sensorTimeline[i].t) {
+                    current = sensorTimeline[i];
+                } else {
+                    break;
+                }
+            }
+            return current;
+        }
+
+        // 센서 UI 업데이트 (실제 폴링 대신 시나리오 값 사용)
+        function updateDemoSensor() {
+            var s = getCurrentSensor();
+
+            document.getElementById('dash-temp').textContent = s.temp.toFixed(1);
+            document.getElementById('dash-temp-bar').style.width =
+                Math.min(s.temp / 45 * 100, 100) + '%';
+
+            document.getElementById('dash-humidity').textContent = s.humi.toFixed(1);
+            document.getElementById('dash-humidity-bar').style.width =
+                Math.min(s.humi / 80 * 100, 100) + '%';
+
+            var gasValueEl  = document.getElementById('dash-gas-value');
+            var gasBadgeEl  = document.getElementById('dash-gas-badge');
+            var gasIconEl   = document.getElementById('dash-gas-icon');
+            var gasIconWrap = document.getElementById('dash-gas-icon-wrap');
+
+            gasValueEl.innerHTML = s.gas.toFixed(1) + '<span class="fs-5"> ppm</span>';
+
+            if (s.gas < 400) {
+                gasValueEl.style.color  = '#16a34a';
+                gasBadgeEl.className    = 'badge rounded-pill bg-success px-3 mt-1';
+                gasBadgeEl.textContent  = '정상';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #ecfdf5, #d1fae5)';
+                gasIconEl.className     = 'bi bi-wind';
+                gasIconEl.style.color   = '#16a34a';
+            } else if (s.gas < 700) {
+                gasValueEl.style.color  = '#d97706';
+                gasBadgeEl.className    = 'badge rounded-pill bg-warning text-dark px-3 mt-1';
+                gasBadgeEl.textContent  = '경고';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+                gasIconEl.className     = 'bi bi-exclamation-triangle';
+                gasIconEl.style.color   = '#d97706';
+            } else {
+                gasValueEl.style.color  = '#dc2626';
+                gasBadgeEl.className    = 'badge rounded-pill bg-danger px-3 mt-1';
+                gasBadgeEl.textContent  = '비상';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+                gasIconEl.className     = 'bi bi-exclamation-diamond';
+                gasIconEl.style.color   = '#dc2626';
+            }
+        }
+
+        // 센서 즉시 + 1초마다 업데이트
+        updateDemoSensor();
+        setInterval(updateDemoSensor, 1000);
+
+        // ── 검사 결과 업데이트 ──────────────────────────────────────────
+        function updateDashboard() {
+            var total = demoPass + demoDefect + demoHold;
+            var yieldRate = total > 0 ? (demoPass / total * 100).toFixed(1) : '0.0';
+
+            document.getElementById('kpi-total').innerHTML = total + ' <small class="fs-6 text-muted">건</small>';
+            document.getElementById('kpi-pass').textContent = demoPass;
+            document.getElementById('kpi-defect').textContent = demoDefect;
+            document.getElementById('kpi-yield').textContent = yieldRate + '%';
+
+            if (yieldChart) {
+                yieldChart.data.datasets[0].data = [demoPass, demoDefect, demoHold];
+                yieldChart.update();
+            }
+
+            var chartCard = document.querySelector('#yieldChart');
+            if (chartCard) {
+                var cardBody = chartCard.closest('.card-body');
+                if (cardBody) {
+                    var h3 = cardBody.querySelector('h3');
+                    var small = cardBody.querySelector('small');
+                    if (h3) h3.textContent = yieldRate + '%';
+                    if (small) small.textContent = '총 ' + total + '건 기준';
+                }
+            }
+        }
+
+        function flashCard(cardId, color) {
+            var card = document.getElementById(cardId);
+            if (!card) return;
+            card.style.transition = 'box-shadow 0.3s ease';
+            card.style.boxShadow = '0 0 25px ' + color;
+            setTimeout(function() { card.style.boxShadow = ''; }, 1500);
+        }
+
+        updateDashboard();
+
+        scenario.forEach(function(evt) {
+            setTimeout(function() {
+                if (evt.type === 'pass') {
+                    demoPass++;
+                    flashCard('card-total', 'rgba(22,163,74,0.6)');
+                    flashCard('card-pass',  'rgba(22,163,74,0.6)');
+                } else {
+                    demoDefect++;
+                    flashCard('card-total',  'rgba(220,38,38,0.6)');
+                    flashCard('card-defect', 'rgba(220,38,38,0.6)');
+                }
+                flashCard('card-yield', 'rgba(6,182,212,0.6)');
+                updateDashboard();
+                console.log('[DEMO ' + evt.t + 's] ' + evt.type.toUpperCase() + ' → P:' + demoPass + ' D:' + demoDefect);
+            }, evt.t * 1000);
+        });
+
+        console.log('[DEMO] 대시보드 데모 모드 활성화 (센서+검사 시나리오)');
+    })();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 데모2 모드: URL에 ?demo=2 → 6초 후 비상정지 알람 + 센서값 고정
+    // ══════════════════════════════════════════════════════════════════════
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('demo') !== '2') return;
+
+        // 센서값 고정 (25.5, 48.6, 200)
+        function fixSensor() {
+            document.getElementById('dash-temp').textContent = '25.5';
+            document.getElementById('dash-temp-bar').style.width =
+                Math.min(25.5 / 45 * 100, 100) + '%';
+
+            document.getElementById('dash-humidity').textContent = '48.6';
+            document.getElementById('dash-humidity-bar').style.width =
+                Math.min(48.6 / 80 * 100, 100) + '%';
+
+            var gasValueEl  = document.getElementById('dash-gas-value');
+            var gasBadgeEl  = document.getElementById('dash-gas-badge');
+            var gasIconEl   = document.getElementById('dash-gas-icon');
+            var gasIconWrap = document.getElementById('dash-gas-icon-wrap');
+
+            gasValueEl.innerHTML = '200.0<span class="fs-5"> ppm</span>';
+            gasValueEl.style.color  = '#16a34a';
+            gasBadgeEl.className    = 'badge rounded-pill bg-success px-3 mt-1';
+            gasBadgeEl.textContent  = '정상';
+            gasIconWrap.style.background = 'linear-gradient(135deg, #ecfdf5, #d1fae5)';
+            gasIconEl.className     = 'bi bi-wind';
+            gasIconEl.style.color   = '#16a34a';
+        }
+
+        // 실제 센서 폴링 차단 + 고정값 적용
+        fixSensor();
+        setInterval(fixSensor, 2000);
+
+        // 6초 후 비상정지 알람 삽입
+        setTimeout(function() {
+            var now = new Date();
+            var timeStr = now.toTimeString().slice(0, 8);
+
+            // 긴급 알람 테이블 tbody 찾기
+            var alarmTable = document.querySelector('.card.border-danger tbody');
+            if (!alarmTable) return;
+
+            // "활성 알람 없음" 행 제거
+            var emptyRow = alarmTable.querySelector('td.text-success');
+            if (emptyRow) {
+                emptyRow.closest('tr').remove();
+            }
+
+            // 비상정지 알람 행 삽입
+            var tr = document.createElement('tr');
+            tr.style.animation = 'fadeInFlash 2s ease-out';
+            tr.innerHTML =
+                '<td><span>' + timeStr + '</span></td>' +
+                '<td><span class="badge bg-danger" style="box-shadow:0 0 10px rgba(220,53,69,0.8);animation:blink 1.5s infinite">emergency</span></td>' +
+                '<td>⚠️ 비상정지 버튼이 눌렸습니다 — 즉시 현장 확인 필요</td>' +
+                '<td><a href="/alarms/?demo=1" class="btn btn-xs btn-outline-secondary py-0">보기</a></td>';
+            alarmTable.insertBefore(tr, alarmTable.firstChild);
+
+            console.log('[DEMO2] 6초 경과 — 대시보드 비상정지 알람 삽입 완료');
+        }, 6000);
+
+        // 메뉴바의 알람 링크에 ?demo=1 자동 추가
+        document.querySelectorAll('a.nav-link').forEach(function(link) {
+            if (link.href && link.href.indexOf('/alarms') !== -1 && link.href.indexOf('demo') === -1) {
+                link.href = link.href.replace(/\/?$/, '/?demo=1');
+            }
+        });
+
+        console.log('[DEMO2] 대시보드 비상정지 데모 모드 활성화');
+    })();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 데모3 모드: ?demo=3 → 가스 농도 상승 시나리오
+    // 온도 24.6 고정, 습도 63.1 고정
+    // 0~21초: 가스 200 (정상)
+    // 21~27초: 가스 400 (경고)
+    // 27초~: 가스 600 (비상) + 알람 삽입
+    // ══════════════════════════════════════════════════════════════════════
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('demo') !== '3') return;
+
+        var demoStartTime = Date.now();
+
+        var gasTimeline = [
+            { t: 0,  gas: 200 },
+            { t: 21, gas: 400 },
+            { t: 27, gas: 600 }
+        ];
+
+        var alarmInserted = false;
+        var defectAdded = false;
+
+        // 초기값 (스크린샷 기준)
+        var demoPass   = 207;
+        var demoDefect = 1;
+        var demoHold   = 2;
+
+        function getCurrentGas() {
+            var elapsed = (Date.now() - demoStartTime) / 1000;
+            var current = gasTimeline[0];
+            for (var i = 0; i < gasTimeline.length; i++) {
+                if (elapsed >= gasTimeline[i].t) current = gasTimeline[i];
+                else break;
+            }
+            return current.gas;
+        }
+
+        // DEFECT/양품률 업데이트 함수
+        function updateDemo3Dashboard() {
+            var total = demoPass + demoDefect + demoHold;
+            var yieldRate = total > 0 ? (demoPass / total * 100).toFixed(1) : '0.0';
+
+            document.getElementById('kpi-total').innerHTML = total + ' <small class="fs-6 text-muted">건</small>';
+            document.getElementById('kpi-pass').textContent = demoPass;
+            document.getElementById('kpi-defect').textContent = demoDefect;
+            document.getElementById('kpi-yield').textContent = yieldRate + '%';
+
+            if (yieldChart) {
+                yieldChart.data.datasets[0].data = [demoPass, demoDefect, demoHold];
+                yieldChart.update();
+            }
+
+            var chartCard = document.querySelector('#yieldChart');
+            if (chartCard) {
+                var cardBody = chartCard.closest('.card-body');
+                if (cardBody) {
+                    var h3 = cardBody.querySelector('h3');
+                    var small = cardBody.querySelector('small');
+                    if (h3) h3.textContent = yieldRate + '%';
+                    if (small) small.textContent = '총 ' + total + '건 기준';
+                }
+            }
+        }
+
+        function flashCard(cardId, color) {
+            var card = document.getElementById(cardId);
+            if (!card) return;
+            card.style.transition = 'box-shadow 0.3s ease';
+            card.style.boxShadow = '0 0 25px ' + color;
+            setTimeout(function() { card.style.boxShadow = ''; }, 1500);
+        }
+
+        // 초기값 강제 적용
+        updateDemo3Dashboard();
+
+        // 7초 후 DEFECT +1
+        setTimeout(function() {
+            demoDefect++;
+            flashCard('card-total',  'rgba(220,38,38,0.6)');
+            flashCard('card-defect', 'rgba(220,38,38,0.6)');
+            flashCard('card-yield',  'rgba(6,182,212,0.6)');
+            updateDemo3Dashboard();
+            console.log('[DEMO3] 7초 — DEFECT+1');
+        }, 7000);
+
+        function updateDemo3Sensor() {
+            var gas = getCurrentGas();
+
+            // 온도/습도 고정
+            document.getElementById('dash-temp').textContent = '24.6';
+            document.getElementById('dash-temp-bar').style.width =
+                Math.min(24.6 / 45 * 100, 100) + '%';
+
+            document.getElementById('dash-humidity').textContent = '63.1';
+            document.getElementById('dash-humidity-bar').style.width =
+                Math.min(63.1 / 80 * 100, 100) + '%';
+
+            // 가스 업데이트
+            var gasValueEl  = document.getElementById('dash-gas-value');
+            var gasBadgeEl  = document.getElementById('dash-gas-badge');
+            var gasIconEl   = document.getElementById('dash-gas-icon');
+            var gasIconWrap = document.getElementById('dash-gas-icon-wrap');
+
+            gasValueEl.innerHTML = gas.toFixed(1) + '<span class="fs-5"> ppm</span>';
+
+            if (gas < 400) {
+                gasValueEl.style.color  = '#16a34a';
+                gasBadgeEl.className    = 'badge rounded-pill bg-success px-3 mt-1';
+                gasBadgeEl.textContent  = '정상';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #ecfdf5, #d1fae5)';
+                gasIconEl.className     = 'bi bi-wind';
+                gasIconEl.style.color   = '#16a34a';
+            } else if (gas < 600) {
+                gasValueEl.style.color  = '#d97706';
+                gasBadgeEl.className    = 'badge rounded-pill bg-warning text-dark px-3 mt-1';
+                gasBadgeEl.textContent  = '경고';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+                gasIconEl.className     = 'bi bi-exclamation-triangle';
+                gasIconEl.style.color   = '#d97706';
+            } else {
+                gasValueEl.style.color  = '#dc2626';
+                gasBadgeEl.className    = 'badge rounded-pill bg-danger px-3 mt-1';
+                gasBadgeEl.textContent  = '비상';
+                gasIconWrap.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+                gasIconEl.className     = 'bi bi-exclamation-diamond';
+                gasIconEl.style.color   = '#dc2626';
+            }
+
+            // 가스 600 도달 시 비상 알람 삽입 (1회만)
+            if (gas >= 600 && !alarmInserted) {
+                alarmInserted = true;
+                var now = new Date();
+                var timeStr = now.toTimeString().slice(0, 8);
+
+                var alarmTable = document.querySelector('.card.border-danger tbody');
+                if (alarmTable) {
+                    var emptyRow = alarmTable.querySelector('td.text-success');
+                    if (emptyRow) emptyRow.closest('tr').remove();
+
+                    var tr = document.createElement('tr');
+                    tr.style.animation = 'fadeInFlash 2s ease-out';
+                    tr.innerHTML =
+                        '<td><span>' + timeStr + '</span></td>' +
+                        '<td><span class="badge bg-danger" style="box-shadow:0 0 10px rgba(220,53,69,0.8);animation:blink 1.5s infinite">emergency</span></td>' +
+                        '<td>🔴 가스 임계 초과: ' + gas.toFixed(0) + ' ppm — 즉시 환기 필요</td>' +
+                        '<td><a href="/alarms/?demo=3" class="btn btn-xs btn-outline-secondary py-0">보기</a></td>';
+                    alarmTable.insertBefore(tr, alarmTable.firstChild);
+                }
+
+                console.log('[DEMO3] 가스 ' + gas + 'ppm — 비상 알람 삽입');
+            }
+        }
+
+        // 실시간 업데이트 (1초마다)
+        updateDemo3Sensor();
+        setInterval(updateDemo3Sensor, 1000);
+
+        // 메뉴바의 알람 링크에 ?demo=3 자동 추가
+        document.querySelectorAll('a.nav-link').forEach(function(link) {
+            if (link.href && link.href.indexOf('/alarms') !== -1 && link.href.indexOf('demo') === -1) {
+                link.href = link.href.replace(/\/?$/, '/?demo=3');
+            }
+        });
+
+        console.log('[DEMO3] 가스 농도 상승 시나리오 활성화');
+    })();
+</script>
+{% endblock %}

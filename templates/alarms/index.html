@@ -1,0 +1,326 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Alarms - 실시간 알람 관리{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-exclamation-triangle text-danger"></i> 실시간 알람 센터</h2>
+        <div class="badge bg-danger p-2 shadow-sm">
+            Active: {{ active|length }}건
+        </div>
+    </div>
+
+    <div class="card bg-dark border-danger mb-5 shadow-lg">
+        <div class="card-header bg-danger bg-opacity-25 text-danger border-danger d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="bi bi-broadcast"></i> 현재 발생 중인 알람 (미조치)</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead class="text-secondary small">
+                        <tr>
+                            <th>발생 시각</th>
+                            <th>심각도</th>
+                            <th>유형</th>
+                            <th>메시지</th>
+                            <th>소스</th>
+                            <th class="text-center">조치</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alarm in active %}
+                        <tr class="align-middle border-danger border-opacity-10">
+                            <td class="text-danger small"><span data-ts="{{ alarm.timestamp.isoformat() }}">{{ alarm.timestamp.strftime('%m-%d %H:%M:%S') }}</span></td>
+                            <td>
+                                <span class="badge bg-{% if alarm.severity=='emergency' %}danger glow-red
+                                              {% elif alarm.severity=='critical' %}warning text-dark
+                                              {% else %}info text-dark{% endif %}">
+                                    {{ alarm.severity.upper() }}
+                                </span>
+                            </td>
+                            <td class="fw-bold">{{ alarm.alarm_type }}</td>
+                            <td>{{ alarm.message }}</td>
+                            <td><small class="text-muted">{{ alarm.source }}</small></td>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('alarms.acknowledge', alarm_id=alarm.id) }}">
+                                    <button class="btn btn-sm btn-outline-warning">
+                                        <i class="bi bi-check2-square"></i> 확인
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <i class="bi bi-shield-check text-success"></i>
+                                    </div>
+                                    <h6 class="text-success">활성 알람 없음</h6>
+                                    <p>현재 조치가 필요한 알람이 없습니다. 시스템이 안전합니다.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-header bg-secondary bg-opacity-10 text-white border-secondary">
+            <span class="fw-bold text-secondary"><i class="bi bi-check-all"></i> 최근 확인된 알람 (조치 완료)</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-sm table-hover mb-0 opacity-75">
+                    <thead class="text-muted small">
+                        <tr>
+                            <th>발생 시각</th>
+                            <th>심각도</th>
+                            <th>메시지</th>
+                            <th>확인자</th>
+                            <th>확인 시각</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alarm in acknowledged %}
+                        <tr class="text-muted">
+                            <td class="small"><span data-ts="{{ alarm.timestamp.isoformat() }}">{{ alarm.timestamp.strftime('%m-%d %H:%M:%S') }}</span></td>
+                            <td><small>[{{ alarm.severity }}]</small></td>
+                            <td>{{ alarm.message }}</td>
+                            <td><i class="bi bi-person"></i> {{ alarm.acknowledged_by or '-' }}</td>
+                            <td class="small">
+                                {% if alarm.acknowledged_at %}
+                                <span data-ts="{{ alarm.acknowledged_at.isoformat() }}">{{ alarm.acknowledged_at.strftime('%H:%M:%S') }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <i class="bi bi-check2-all"></i>
+                                    </div>
+                                    <h6>확인된 알람 없음</h6>
+                                    <p>조치 완료된 알람 내역이 없습니다.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .glow-red {
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.8);
+        animation: blink 1.5s infinite;
+    }
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+    @keyframes fadeInFlash {
+        0% { background-color: rgba(220,53,69,0.6); }
+        100% { background-color: transparent; }
+    }
+    .demo-alarm-flash {
+        animation: fadeInFlash 2s ease-out;
+    }
+</style>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// 데모 모드: ?demo=1 → 접속 즉시 비상정지 알람 표시
+// 확인 버튼 → 활성 테이블에서 제거 → 확인된 알람 테이블로 이동
+// ══════════════════════════════════════════════════════════════════════
+(function() {
+    if (!new URLSearchParams(window.location.search).has('demo')) return;
+
+    var now = new Date();
+    var dateStr = (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0') + ' ' + now.toTimeString().slice(0,8);
+    var timeOnly = now.toTimeString().slice(0,8);
+
+    // ── 활성 알람 테이블에 비상정지 삽입 ──────────────────────────────
+    var activeTable = document.querySelector('.card.bg-dark.border-danger tbody');
+    if (!activeTable) return;
+
+    // "활성 알람 없음" 행 제거
+    var emptyRow = activeTable.querySelector('.empty-state');
+    if (emptyRow) emptyRow.closest('tr').remove();
+
+    var tr = document.createElement('tr');
+    tr.id = 'demo-estop-row';
+    tr.className = 'align-middle border-danger border-opacity-10 demo-alarm-flash';
+    tr.innerHTML =
+        '<td class="text-danger small"><span>' + dateStr + '</span></td>' +
+        '<td><span class="badge bg-danger glow-red">EMERGENCY</span></td>' +
+        '<td class="fw-bold">emergency_stop</td>' +
+        '<td>⚠️ 비상정지 버튼이 눌렸습니다 — 즉시 현장 확인 필요</td>' +
+        '<td><small class="text-muted">PLC_Main</small></td>' +
+        '<td class="text-center">' +
+            '<button class="btn btn-sm btn-outline-warning" id="demo-ack-btn">' +
+                '<i class="bi bi-check2-square"></i> 확인' +
+            '</button>' +
+        '</td>';
+    activeTable.insertBefore(tr, activeTable.firstChild);
+
+    // Active 카운트 업데이트
+    var activeBadge = document.querySelector('.badge.bg-danger.p-2');
+    if (activeBadge) {
+        var cnt = parseInt(activeBadge.textContent.match(/\d+/) || '0');
+        activeBadge.textContent = 'Active: ' + (cnt + 1) + '건';
+    }
+
+    // ── 확인 버튼 클릭 → 확인된 알람으로 이동 ──────────────────────
+    document.getElementById('demo-ack-btn').addEventListener('click', function() {
+        var ackTime = new Date().toTimeString().slice(0,8);
+
+        // 활성 테이블에서 제거
+        var row = document.getElementById('demo-estop-row');
+        if (row) row.remove();
+
+        // Active 카운트 감소
+        if (activeBadge) {
+            var newCnt = parseInt(activeBadge.textContent.match(/\d+/) || '1') - 1;
+            activeBadge.textContent = 'Active: ' + Math.max(0, newCnt) + '건';
+        }
+
+        // 활성 테이블이 비었으면 "활성 알람 없음" 복원
+        if (activeTable.children.length === 0) {
+            var emptyTr = document.createElement('tr');
+            emptyTr.innerHTML =
+                '<td colspan="6">' +
+                    '<div class="empty-state">' +
+                        '<div class="empty-state-icon"><i class="bi bi-shield-check text-success"></i></div>' +
+                        '<h6 class="text-success">활성 알람 없음</h6>' +
+                        '<p>현재 조치가 필요한 알람이 없습니다. 시스템이 안전합니다.</p>' +
+                    '</div>' +
+                '</td>';
+            activeTable.appendChild(emptyTr);
+        }
+
+        // 확인된 알람 테이블에 추가
+        var ackTable = document.querySelector('.card.bg-dark.border-secondary tbody');
+        if (ackTable) {
+            // "확인된 알람 없음" 행 제거
+            var ackEmpty = ackTable.querySelector('.empty-state');
+            if (ackEmpty) ackEmpty.closest('tr').remove();
+
+            var ackTr = document.createElement('tr');
+            ackTr.className = 'text-muted';
+            ackTr.style.animation = 'fadeInFlash 2s ease-out';
+            ackTr.innerHTML =
+                '<td class="small"><span>' + dateStr + '</span></td>' +
+                '<td><small>[emergency]</small></td>' +
+                '<td>⚠️ 비상정지 버튼이 눌렸습니다 — 즉시 현장 확인 필요</td>' +
+                '<td><i class="bi bi-person"></i> admin</td>' +
+                '<td class="small"><span>' + ackTime + '</span></td>';
+            ackTable.insertBefore(ackTr, ackTable.firstChild);
+        }
+
+        console.log('[DEMO] 비상정지 알람 확인 처리 → 확인된 알람으로 이동');
+    });
+
+    console.log('[DEMO] 알람 페이지 — 비상정지 알람 즉시 표시');
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// 데모3: ?demo=3 → 가스 임계 초과 알람 즉시 표시 + 확인→이동
+// ══════════════════════════════════════════════════════════════════════
+(function() {
+    if (new URLSearchParams(window.location.search).get('demo') !== '3') return;
+
+    var now = new Date();
+    var dateStr = (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0') + ' ' + now.toTimeString().slice(0,8);
+
+    var activeTable = document.querySelector('.card.bg-dark.border-danger tbody');
+    if (!activeTable) return;
+
+    // "활성 알람 없음" 행 제거
+    var emptyRow = activeTable.querySelector('.empty-state');
+    if (emptyRow) emptyRow.closest('tr').remove();
+
+    var tr = document.createElement('tr');
+    tr.id = 'demo-gas-row';
+    tr.className = 'align-middle border-danger border-opacity-10 demo-alarm-flash';
+    tr.innerHTML =
+        '<td class="text-danger small"><span>' + dateStr + '</span></td>' +
+        '<td><span class="badge bg-danger glow-red">CRITICAL</span></td>' +
+        '<td class="fw-bold">gas_critical</td>' +
+        '<td>🔴 가스 임계 초과: 600 ppm — 즉시 환기 필요</td>' +
+        '<td><small class="text-muted">RPi_Sensor</small></td>' +
+        '<td class="text-center">' +
+            '<button class="btn btn-sm btn-outline-warning" id="demo-gas-ack-btn">' +
+                '<i class="bi bi-check2-square"></i> 확인' +
+            '</button>' +
+        '</td>';
+    activeTable.insertBefore(tr, activeTable.firstChild);
+
+    // Active 카운트 업데이트
+    var activeBadge = document.querySelector('.badge.bg-danger.p-2');
+    if (activeBadge) {
+        var cnt = parseInt(activeBadge.textContent.match(/\d+/) || '0');
+        activeBadge.textContent = 'Active: ' + (cnt + 1) + '건';
+    }
+
+    // 확인 버튼 → 확인된 알람으로 이동
+    document.getElementById('demo-gas-ack-btn').addEventListener('click', function() {
+        var ackTime = new Date().toTimeString().slice(0,8);
+
+        var row = document.getElementById('demo-gas-row');
+        if (row) row.remove();
+
+        if (activeBadge) {
+            var newCnt = parseInt(activeBadge.textContent.match(/\d+/) || '1') - 1;
+            activeBadge.textContent = 'Active: ' + Math.max(0, newCnt) + '건';
+        }
+
+        if (activeTable.children.length === 0) {
+            var emptyTr = document.createElement('tr');
+            emptyTr.innerHTML =
+                '<td colspan="6">' +
+                    '<div class="empty-state">' +
+                        '<div class="empty-state-icon"><i class="bi bi-shield-check text-success"></i></div>' +
+                        '<h6 class="text-success">활성 알람 없음</h6>' +
+                        '<p>현재 조치가 필요한 알람이 없습니다. 시스템이 안전합니다.</p>' +
+                    '</div>' +
+                '</td>';
+            activeTable.appendChild(emptyTr);
+        }
+
+        var ackTable = document.querySelector('.card.bg-dark.border-secondary tbody');
+        if (ackTable) {
+            var ackEmpty = ackTable.querySelector('.empty-state');
+            if (ackEmpty) ackEmpty.closest('tr').remove();
+
+            var ackTr = document.createElement('tr');
+            ackTr.className = 'text-muted';
+            ackTr.style.animation = 'fadeInFlash 2s ease-out';
+            ackTr.innerHTML =
+                '<td class="small"><span>' + dateStr + '</span></td>' +
+                '<td><small>[critical]</small></td>' +
+                '<td>🔴 가스 임계 초과: 600 ppm — 즉시 환기 필요</td>' +
+                '<td><i class="bi bi-person"></i> admin</td>' +
+                '<td class="small"><span>' + ackTime + '</span></td>';
+            ackTable.insertBefore(ackTr, ackTable.firstChild);
+        }
+
+        console.log('[DEMO3] 가스 알람 확인 처리 → 확인된 알람으로 이동');
+    });
+
+    console.log('[DEMO3] 알람 페이지 — 가스 임계 초과 알람 즉시 표시');
+})();
+</script>
+{% endblock %}

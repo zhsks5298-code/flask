@@ -1,0 +1,117 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Sorting - 분류 결과{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-arrow-left-right text-warning"></i> 공정 분류 결과</h2>
+        <span class="text-muted small">Page: {{ pagination.page }} / {{ pagination.pages }}</span>
+    </div>
+
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <select name="verification_result" class="form-select bg-secondary text-white border-0">
+                        <option value="">전체 결과</option>
+                        {% for v in ['success', 'wrong_bin', 'timeout', 'skipped'] %}
+                        <option value="{{ v }}" {% if filter_v == v %}selected{% endif %}>{{ v.upper() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary px-4">필터</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card bg-dark shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead class="text-secondary small border-secondary">
+                        <tr>
+                            <th>ID</th>
+                            <th>발생 시각</th>
+                            <th>검사 ID</th>
+                            <th>예상 경로</th>
+                            <th>실제 센서</th>
+                            <th>검증 결과</th>
+                            <th>타이밍</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        {% for s in pagination.items %}
+                        <tr>
+                            <td class="text-muted">{{ s.id }}</td>
+                            <td>{{ s.timestamp.strftime('%m-%d %H:%M:%S') }}</td>
+                            <td>
+                                {% if s.inspection_id %}
+                                <a href="{{ url_for('inspections.detail', id=s.inspection_id) }}" class="text-info text-decoration-none">
+                                    <i class="bi bi-link-45deg"></i>#{{ s.inspection_id }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold">{{ s.expected_route.upper() if s.expected_route else '-' }}</td>
+                            <td><span class="badge border border-secondary">{{ s.actual_sensor }}</span></td>
+                            <td>
+                                <span class="badge bg-{% if s.verification_result=='success' %}success
+                                              {% elif s.verification_result=='wrong_bin' %}danger
+                                              {% elif s.verification_result=='timeout' %}warning text-dark
+                                              {% else %}secondary{% endif %}">
+                                    {{ s.verification_result.upper() }}
+                                </span>
+                            </td>
+                            <td class="text-warning">{{ s.timing_ms or '-' }} <small>ms</small></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <i class="bi bi-arrow-left-right"></i>
+                                    </div>
+                                    <h6>분류 데이터 없음</h6>
+                                    <p>아직 처리된 분류 결과가 없습니다.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link bg-dark border-secondary text-white" href="?page={{ pagination.prev_num }}&verification_result={{ filter_v }}">이전</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link bg-warning border-warning text-dark px-3">{{ pagination.page }}</span>
+            </li>
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link bg-dark border-secondary text-white" href="?page={{ pagination.next_num }}&verification_result={{ filter_v }}">다음</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .page-link:focus { box-shadow: none; }
+</style>
+{% endblock %}

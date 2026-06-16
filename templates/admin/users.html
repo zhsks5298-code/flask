@@ -1,0 +1,51 @@
+{% extends base_template|default("base.html") %}
+{% block title %}사용자 관리{% endblock %}
+{% block content %}
+
+<h4 class="mb-3"><i class="bi bi-people"></i> 사용자 관리</h4>
+
+<table class="table table-striped table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>ID</th><th>사용자명</th><th>이름</th><th>역할</th>
+      <th>활성</th><th>마지막 로그인</th><th>생성일</th><th>잠금</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.full_name or '-' }}</td>
+      <td>
+        <span class="badge bg-{% if u.role=='admin' %}danger
+                              {% elif u.role=='maintainer' %}warning text-dark
+                              {% elif u.role=='operator' %}primary
+                              {% else %}secondary{% endif %}">
+          {{ u.role }}
+        </span>
+      </td>
+      <td>
+        {% if u.is_active %}
+        <i class="bi bi-check-circle text-success"></i>
+        {% else %}
+        <i class="bi bi-x-circle text-danger"></i>
+        {% endif %}
+      </td>
+      <td>{{ u.last_login_at.strftime('%Y-%m-%d %H:%M') if u.last_login_at else '-' }}</td>
+      <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '-' }}</td>
+      <td>
+        {% if u.is_locked() %}
+        <span class="badge bg-danger">잠금중</span>
+        {% else %}
+        <span class="text-muted">-</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="text-center text-muted">사용자 없음</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

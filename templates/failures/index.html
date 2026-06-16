@@ -1,0 +1,132 @@
+{% extends base_template | default('base.html') %}
+{% block title %}불량 갤러리{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0"><i class="bi bi-images me-2"></i>불량 이미지 갤러리</h5>
+    <div class="d-flex gap-2 small text-muted">
+        <span class="badge bg-danger">Defect {{ total_defect }}</span>
+        <span class="badge bg-warning text-dark">Hold {{ total_hold }}</span>
+    </div>
+</div>
+
+{# ── 필터 바 ── #}
+<form method="get" class="row g-2 mb-4">
+    <div class="col-auto">
+        <select name="result" class="form-select form-select-sm" style="padding-right:2rem;" onchange="this.form.submit()">
+            <option value="all"    {% if result_filter == 'all'    %}selected{% endif %}>전체 (Defect+Hold)</option>
+            <option value="defect" {% if result_filter == 'defect' %}selected{% endif %}>Defect만</option>
+            <option value="hold"   {% if result_filter == 'hold'   %}selected{% endif %}>Hold만</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="product_type" class="form-select form-select-sm" style="padding-right:2rem;" onchange="this.form.submit()">
+            <option value=""           {% if product_filter == ''           %}selected{% endif %}>전체 제품</option>
+            <option value="transistor" {% if product_filter == 'transistor' %}selected{% endif %}>Transistor</option>
+            <option value="capacitor"  {% if product_filter == 'capacitor'  %}selected{% endif %}>Capacitor</option>
+            <option value="regulator"  {% if product_filter == 'regulator'  %}selected{% endif %}>Regulator</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="period" class="form-select form-select-sm" style="padding-right:2rem;" onchange="this.form.submit()">
+            <option value="today" {% if period_filter == 'today' %}selected{% endif %}>오늘</option>
+            <option value="week"  {% if period_filter == 'week'  %}selected{% endif %}>최근 7일</option>
+            <option value="month" {% if period_filter == 'month' %}selected{% endif %}>최근 30일</option>
+            <option value="all"   {% if period_filter == 'all'   %}selected{% endif %}>전체</option>
+        </select>
+    </div>
+</form>
+
+{# ── 갤러리 그리드 ── #}
+{% if pagination.items %}
+<div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3">
+    {% for item in pagination.items %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0
+            {% if item.result == 'defect' %}border-top border-danger border-3
+            {% else %}border-top border-warning border-3{% endif %}">
+
+            {# 이미지 영역 #}
+            {% if item.cam1_image_path %}
+                <img src="{{ url_for('static', filename=item.cam1_image_path.replace('\\', '/')) }}"
+                     class="card-img-top object-fit-cover"
+                     style="height:200px;"
+                     alt="{{ item.product_id }}"
+                     loading="lazy">
+            {% else %}
+                <div class="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10"
+                     style="height:200px;">
+                    <i class="bi bi-image text-muted" style="font-size:2rem;"></i>
+                </div>
+            {% endif %}
+
+            <div class="card-body p-2">
+                {# 결과 배지 #}
+                {% if item.result == 'defect' %}
+                    <span class="badge bg-danger mb-1">DEFECT</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark mb-1">HOLD</span>
+                {% endif %}
+
+                <div class="small text-truncate text-muted">
+                    {{ item.product_type or '—' }} / {{ item.product_id or '—' }}
+                </div>
+                {% if item.defect_detail %}
+                <div class="small text-truncate" title="{{ item.defect_detail }}">
+                    {{ item.defect_detail }}
+                </div>
+                {% endif %}
+                <div class="small text-muted mt-1">
+                    {% if item.final_confidence %}
+                        <i class="bi bi-percent me-1"></i>{{ (item.final_confidence * 100)|round(1) }}%
+                    {% endif %}
+                </div>
+                <div class="small text-muted" data-ts="{{ item.timestamp.isoformat() }}">
+                    {{ item.timestamp.strftime('%m/%d %H:%M') }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# ── 페이지네이션 ── #}
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ pagination.prev_num }}&result={{ result_filter }}&product_type={{ product_filter }}&period={{ period_filter }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="?page={{ p }}&result={{ result_filter }}&product_type={{ product_filter }}&period={{ period_filter }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ pagination.next_num }}&result={{ result_filter }}&product_type={{ product_filter }}&period={{ period_filter }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+{# 데이터 없음 #}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-inbox" style="font-size:3rem;"></i>
+    <p class="mt-2">해당 조건의 불량 이미지가 없습니다.</p>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}실시간 센서 모니터링{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><i class="bi bi-broadcast"></i> 실시간 센서 데이터</h1>
+        <div class="badge bg-primary text-wrap" style="width: 10rem;">
+            LIVE: {{ target_date }}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card shadow mb-4 border-left-danger">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-danger text-center">온도 추이 (15°C - 45°C)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 250px;"><canvas id="tempChart"></canvas></div>
+                    <div class="mt-3 p-3 border-start border-danger border-4 rounded bg-light text-center">
+                        <small class="text-muted d-block fw-bold">CURRENT TEMP</small>
+                        <h2 id="currTemp" class="mb-1 text-danger">--°C</h2>
+                        <span id="tempBadge" class="badge rounded-pill">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow mb-4 border-left-info">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-info text-center">습도 추이 (30% - 80%)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 250px;"><canvas id="humiChart"></canvas></div>
+                    <div class="mt-3 p-3 border-start border-info border-4 rounded bg-light text-center">
+                        <small class="text-muted d-block fw-bold">CURRENT HUMIDITY</small>
+                        <h2 id="currHumi" class="mb-1 text-info">--%</h2>
+                        <span id="humiBadge" class="badge rounded-pill">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow mb-4 border-left-warning">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-warning text-center">가스 농도 (0 - 1000 ppm)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 250px;"><canvas id="gasChart"></canvas></div>
+                    <div class="mt-3 p-3 border-start border-warning border-4 rounded bg-light text-center">
+                        <small class="text-muted d-block fw-bold">CURRENT GAS</small>
+                        <h2 id="currGas" class="mb-1 text-warning">-- ppm</h2>
+                        <span id="gasBadge" class="badge rounded-pill">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let charts = {};
+
+    const zoneAreaPlugin = {
+        id: 'zoneArea',
+        beforeDraw(chart, args, options) {
+            const { ctx, chartArea: { top, bottom, left, width }, scales: { y } } = chart;
+            ctx.save();
+            options.zones.forEach(zone => {
+                let yStart = y.getPixelForValue(zone.valueStart);
+                let yEnd = y.getPixelForValue(zone.valueEnd);
+                yStart = Math.max(Math.min(yStart, bottom), top);
+                yEnd = Math.max(Math.min(yEnd, bottom), top);
+                ctx.fillStyle = zone.color;
+                ctx.fillRect(left, Math.min(yStart, yEnd), width, Math.abs(yStart - yEnd));
+            });
+            ctx.restore();
+        }
+    };
+
+    async function updateCharts() {
+        try {
+            const response = await fetch('/sensors/api/data');
+            const data = await response.json();
+
+            if (!data.latest) return;
+
+            // 1. 텍스트 데이터 업데이트 (null 안전 처리)
+            const temp = (data.latest.temp !== null && data.latest.temp !== undefined) ? data.latest.temp.toFixed(1) : '--';
+            const humi = (data.latest.humidity !== null && data.latest.humidity !== undefined) ? data.latest.humidity.toFixed(1) : '--';
+            const gas = (data.latest.gas !== null && data.latest.gas !== undefined) ? data.latest.gas.toFixed(1) : '--';
+
+            document.getElementById('currTemp').innerText = temp + '°C';
+            document.getElementById('currHumi').innerText = humi + '%';
+            document.getElementById('currGas').innerText = gas + ' ppm';
+
+            // 2. 가스 상태 배지
+            const gBadge = document.getElementById('gasBadge');
+            if (data.latest.gas >= 700) { gBadge.className = 'badge bg-danger'; gBadge.innerText = '비상'; }
+            else if (data.latest.gas >= 400) { gBadge.className = 'badge bg-warning text-dark'; gBadge.innerText = '경고'; }
+            else { gBadge.className = 'badge bg-success'; gBadge.innerText = '정상'; }
+
+            // 3. 차트 렌더링
+            renderLineChart('tempChart', data.labels, data.temperature, '#FF4D4D', 15, 45, [
+                { valueStart: 15, valueEnd: 35, color: 'rgba(25, 135, 84, 0.08)' },
+                { valueStart: 35, valueEnd: 40, color: 'rgba(255, 193, 7, 0.15)' },
+                { valueStart: 40, valueEnd: 45, color: 'rgba(220, 53, 69, 0.15)' }
+            ]);
+            renderLineChart('humiChart', data.labels, data.humidity, '#33CCFF', 30, 80, [
+                { valueStart: 30, valueEnd: 60, color: 'rgba(25, 135, 84, 0.08)' },
+                { valueStart: 60, valueEnd: 70, color: 'rgba(255, 193, 7, 0.15)' },
+                { valueStart: 70, valueEnd: 80, color: 'rgba(220, 53, 69, 0.15)' }
+            ]);
+            renderLineChart('gasChart', data.labels, data.gas, '#FFCC00', 0, 1000, [
+                { valueStart: 0,    valueEnd: 400, color: 'rgba(25, 135, 84, 0.08)' },
+                { valueStart: 400, valueEnd: 700, color: 'rgba(255, 193, 7, 0.15)' },
+                { valueStart: 700, valueEnd: 1000, color: 'rgba(220, 53, 69, 0.15)' }
+            ]);
+
+        } catch (e) { console.error("Update Fail:", e); }
+    }
+
+    function renderLineChart(id, labels, data, color, min, max, zones) {
+        if (charts[id]) { charts[id].destroy(); }
+        
+        charts[id] = new Chart(document.getElementById(id), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    borderColor: color,
+                    borderWidth: 3,
+                    pointBackgroundColor: color,
+                    pointRadius: 3,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: { legend: { display: false }, zoneArea: { zones: zones } },
+                scales: { 
+                    y: { min: min, max: max },
+                    x: { ticks: { maxTicksLimit: 10 } }
+                }
+            },
+            plugins: [zoneAreaPlugin]
+        });
+    }
+
+    window.onload = () => {
+        updateCharts();
+        setInterval(updateCharts, 5000);
+    };
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends base_template|default("base.html") %}
+{% block title %}Login{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 120px);">
+    <div style="width: 100%; max-width: 420px;">
+
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" 
+                 style="width: 72px; height: 72px; background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);">
+                <i class="bi bi-gear-wide-connected text-white" style="font-size: 2rem;"></i>
+            </div>
+            <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">MFG Dashboard</h2>
+            <p class="text-muted">스마트 제조 공정 관제 시스템</p>
+        </div>
+
+        <div class="card border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="card-body p-4 p-md-5">
+                <h4 class="fw-bold mb-1">로그인</h4>
+                <p class="text-muted small mb-4">계정 정보를 입력해 주세요</p>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">사용자명</label>
+                        <div class="position-relative">
+                            <i class="bi bi-person position-absolute text-muted" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.1rem;"></i>
+                            <input type="text" name="username" class="form-control" 
+                                   placeholder="사용자명을 입력하세요" required autofocus
+                                   style="border-radius: 10px; padding: 0.6rem 0.75rem 0.6rem 2.5rem; font-size: 0.95rem;">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">비밀번호</label>
+                        <div class="position-relative">
+                            <i class="bi bi-lock position-absolute text-muted" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.1rem;"></i>
+                            <input type="password" name="password" class="form-control" 
+                                   placeholder="비밀번호를 입력하세요" required
+                                   style="border-radius: 10px; padding: 0.6rem 0.75rem 0.6rem 2.5rem; font-size: 0.95rem;">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" 
+                            style="border-radius: 10px; font-size: 1rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>로그인
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted small mb-1">
+                <i class="bi bi-shield-check me-1"></i>5회 실패 시 계정이 30분간 잠깁니다
+            </p>
+            <p class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>문제가 있으면 관리자에게 문의하세요
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .form-control:focus {
+        border-color: var(--brand) !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    }
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
+    }
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+</style>
+
+{% endblock %}

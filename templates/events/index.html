@@ -1,0 +1,119 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}Events - 시스템 로그{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-clock-history text-info"></i> 시스템 이벤트 로그</h2>
+        <span class="text-muted small">Total: {{ pagination.total }} entries</span>
+    </div>
+
+    <div class="card bg-dark border-secondary mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label class="text-secondary small d-block mb-1">심각도</label>
+                    <select name="severity" class="form-select">
+                        <option value="">전체 심각도</option>
+                        {% for v in ['info','warning','critical','emergency'] %}
+                        <option value="{{ v }}" {% if sev==v %}selected{% endif %}>{{ v.upper() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="text-secondary small d-block mb-1">이벤트 타입</label>
+                    <select name="event_type" class="form-select">
+                        <option value="">전체 타입</option>
+                        {% for t in event_types %}
+                        <option value="{{ t }}" {% if etype==t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto d-flex align-items-end">
+                    <button class="btn btn-primary mt-4 px-4">필터 적용</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card bg-dark border-0 shadow">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead class="text-secondary small border-secondary">
+                        <tr>
+                            <th>발생 시각</th>
+                            <th>심각도</th>
+                            <th>이벤트 타입</th>
+                            <th>소스</th>
+                            <th>작성자</th>
+                            <th>메시지</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        {% for e in pagination.items %}
+                        <tr>
+                            <td class="text-muted small"><span data-ts="{{ e.timestamp.isoformat() }}">{{ e.timestamp.strftime('%m-%d %H:%M:%S') }}</span></td>
+                            <td>
+                                {% if e.severity == 'info' %}
+                                <span class="badge bg-info text-dark">INFO</span>
+                                {% elif e.severity == 'warning' %}
+                                <span class="badge bg-warning text-dark">WARNING</span>
+                                {% elif e.severity == 'critical' %}
+                                <span class="badge bg-danger">CRITICAL</span>
+                                {% elif e.severity == 'emergency' %}
+                                <span class="badge bg-danger border border-light animate-pulse">EMERGENCY</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="text-info">{{ e.event_type }}</span></td>
+                            <td><small class="text-secondary">{{ e.source }}</small></td>
+                            <td>{{ e.actor or '-' }}</td>
+                            <td class="text-light">{{ e.message or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">기록된 이벤트가 없습니다.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link bg-dark border-secondary text-white" href="?page={{ pagination.prev_num }}&severity={{ sev }}&event_type={{ etype }}">이전</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link bg-primary border-primary">{{ pagination.page }} / {{ pagination.pages }}</span>
+            </li>
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link bg-dark border-secondary text-white" href="?page={{ pagination.next_num }}&severity={{ sev }}&event_type={{ etype }}">다음</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<style>
+    /* Emergency 등급일 때 깜빡이는 효과 (선택사항) */
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+</style>
+{% endblock %}

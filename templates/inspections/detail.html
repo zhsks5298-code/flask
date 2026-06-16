@@ -1,0 +1,42 @@
+{% extends base_template|default("base.html") %}
+{% block title %}검사 상세 #{{ insp.id }}{% endblock %}
+{% block content %}
+<h4><i class="bi bi-file-text"></i> 검사 상세 #{{ insp.id }}</h4>
+<a href="{{ url_for('inspections.index') }}" class="btn btn-sm btn-outline-secondary mb-3">← 목록</a>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">검사 결과</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><th>시각</th><td>{{ insp.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>
+          <tr><th>제품</th><td>{{ insp.product_type }}</td></tr>
+          <tr><th>결과</th><td><span class="badge bg-{% if insp.result=='pass' %}success{% elif insp.result=='defect' %}danger{% else %}warning text-dark{% endif %} fs-6">{{ insp.result.upper() }}</span></td></tr>
+          <tr><th>YOLO 클래스</th><td>{{ insp.yolo_class or '-' }}</td></tr>
+          <tr><th>YOLO 신뢰도</th><td>{{ "%.3f"|format(insp.yolo_confidence or 0) }}</td></tr>
+          <tr><th>결함 상세</th><td>{{ insp.defect_detail or '-' }}</td></tr>
+          <tr><th>CAM2 사용</th><td>{{ '사용' if insp.cam2_used else '-' }}</td></tr>
+          <tr><th>추론 시간</th><td>{{ insp.inference_time_ms or '-' }} ms</td></tr>
+          <tr><th>모델 버전</th><td>{{ insp.model_version or '-' }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    {% if sort %}
+    <div class="card mb-3">
+      <div class="card-header">분류 결과</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><th>예상 경로</th><td>{{ sort.expected_route }}</td></tr>
+          <tr><th>실제 센서</th><td>{{ sort.actual_sensor }}</td></tr>
+          <tr><th>검증 결과</th><td>{{ sort.verification_result }}</td></tr>
+          <tr><th>타이밍</th><td>{{ sort.timing_ms or '-' }} ms</td></tr>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

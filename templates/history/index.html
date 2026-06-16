@@ -1,0 +1,318 @@
+{% extends base_template|default("base.html") %}
+
+{% block title %}기록 - 센서 이력 조회{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-graph-up text-info"></i> 센서 이력 조회</h2>
+        <span class="text-muted small"><i class="bi bi-database me-1"></i>MySQL · 2시간 단위 집계</span>
+    </div>
+
+    <!-- 조회 컨트롤 -->
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label class="text-secondary small d-block mb-1">날짜 선택</label>
+                    <input type="date" id="date-picker" class="form-control bg-secondary text-white border-0">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary px-4" onclick="loadHistory()">
+                        <i class="bi bi-search me-1"></i>조회
+                    </button>
+                    <button class="btn btn-outline-secondary ms-2" onclick="loadToday()">오늘</button>
+                </div>
+
+                <!-- 평균 / 최저 / 최고 토글 -->
+                <div class="col-auto">
+                    <label class="text-secondary small d-block mb-1">표시 값</label>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-primary active" id="btn-avg"
+                                onclick="switchMode('avg')">평균</button>
+                        <button type="button" class="btn btn-sm btn-outline-info" id="btn-min"
+                                onclick="switchMode('min')">최저</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-max"
+                                onclick="switchMode('max')">최고</button>
+                    </div>
+                </div>
+
+                <div class="col-auto ms-auto">
+                    <span id="result-info" class="text-muted small"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트 3종 -->
+    <div class="row g-3">
+        <!-- 온도 -->
+        <div class="col-lg-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary">
+                    <i class="bi bi-thermometer-half me-1" style="color:#ea580c;"></i>
+                    <span style="color:#ea580c; font-weight:600;">온도 (°C)</span>
+                    <span id="temp-mode-label" class="badge bg-primary ms-2">평균</span>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 280px;">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                    <div id="temp-nodata" class="text-center text-muted py-5" style="display:none;">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>데이터 없음
+                    </div>
+                    <div class="row text-center mt-3 border-top border-secondary pt-3">
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 최저</small>
+                            <span id="temp-day-min" class="fw-bold" style="color:#ea580c;">--</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 평균</small>
+                            <span id="temp-day-avg" class="fw-bold fs-5" style="color:#ea580c;">--</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 최고</small>
+                            <span id="temp-day-max" class="fw-bold" style="color:#ea580c;">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 습도 -->
+        <div class="col-lg-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary">
+                    <i class="bi bi-droplet-half me-1" style="color:#2563eb;"></i>
+                    <span style="color:#2563eb; font-weight:600;">습도 (%)</span>
+                    <span id="humid-mode-label" class="badge bg-primary ms-2">평균</span>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 280px;">
+                        <canvas id="humidChart"></canvas>
+                    </div>
+                    <div id="humid-nodata" class="text-center text-muted py-5" style="display:none;">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>데이터 없음
+                    </div>
+                    <div class="row text-center mt-3 border-top border-secondary pt-3">
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 최저</small>
+                            <span id="humid-day-min" class="fw-bold" style="color:#2563eb;">--</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 평균</small>
+                            <span id="humid-day-avg" class="fw-bold fs-5" style="color:#2563eb;">--</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 최고</small>
+                            <span id="humid-day-max" class="fw-bold" style="color:#2563eb;">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 가스 -->
+        <div class="col-lg-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-transparent border-secondary">
+                    <i class="bi bi-wind me-1" style="color:#16a34a;"></i>
+                    <span style="color:#16a34a; font-weight:600;">가스 농도 (ppm)</span>
+                    <span id="gas-mode-label" class="badge bg-primary ms-2">평균</span>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 280px;">
+                        <canvas id="gasChart"></canvas>
+                    </div>
+                    <div id="gas-nodata" class="text-center text-muted py-5" style="display:none;">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>데이터 없음
+                    </div>
+                    <div class="row text-center mt-3 border-top border-secondary pt-3">
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 최저</small>
+                            <span id="gas-day-min" class="fw-bold" style="color:#16a34a;">--</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 평균</small>
+                            <span id="gas-day-avg" class="fw-bold fs-5" style="color:#16a34a;">--</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">일 최고</small>
+                            <span id="gas-day-max" class="fw-bold" style="color:#16a34a;">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#cfd2d6';
+Chart.defaults.borderColor = '#3a3f44';
+Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+/* ── 전역 상태 ───────────────────────────────────────────── */
+let charts = {};
+let cachedData = null;    // API 응답 캐시 (avg/min/max 다 들어있음)
+let currentMode = 'avg';  // avg / min / max
+
+/* ── 차트 생성 ───────────────────────────────────────────── */
+function makeChart(id, color) {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: color + '88',
+                borderColor: color,
+                borderWidth: 1.5,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    ticks: { font: { size: 11 } },
+                    grid: { display: false }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(255,255,255,0.06)' }
+                }
+            }
+        }
+    });
+    return charts[id];
+}
+
+/* ── 차트 업데이트 ───────────────────────────────────────── */
+function updateChart(id, labels, data) {
+    const nodata = document.getElementById(id.replace('Chart', '-nodata'));
+    const canvas = document.getElementById(id);
+
+    if (!data || data.length === 0 || data.every(v => v === null)) {
+        canvas.style.display = 'none';
+        if (nodata) nodata.style.display = 'block';
+        return;
+    }
+    canvas.style.display = 'block';
+    if (nodata) nodata.style.display = 'none';
+
+    charts[id].data.labels = labels;
+    charts[id].data.datasets[0].data = data;
+    charts[id].update();
+}
+
+/* ── 통계 계산 ───────────────────────────────────────────── */
+function dayStats(arr) {
+    const v = arr.filter(x => x !== null && x !== undefined);
+    if (!v.length) return { avg: '--', min: '--', max: '--' };
+    return {
+        avg: (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1),
+        min: Math.min(...v).toFixed(1),
+        max: Math.max(...v).toFixed(1),
+    };
+}
+
+/* ── 차트 초기 생성 ──────────────────────────────────────── */
+makeChart('tempChart',  '#ea580c');
+makeChart('humidChart', '#2563eb');
+makeChart('gasChart',   '#16a34a');
+
+/* ── 모드 전환 (평균/최저/최고) ───────────────────────────── */
+function switchMode(mode) {
+    currentMode = mode;
+
+    // 버튼 스타일 전환
+    const modes = {avg: '평균', min: '최저', max: '최고'};
+    const btnClasses = {avg: 'btn-primary', min: 'btn-info', max: 'btn-danger'};
+    const badgeClasses = {avg: 'bg-primary', min: 'bg-info', max: 'bg-danger'};
+
+    ['avg', 'min', 'max'].forEach(m => {
+        const btn = document.getElementById('btn-' + m);
+        btn.className = 'btn btn-sm ' + (m === mode ? btnClasses[m] + ' active' : 'btn-outline-secondary');
+    });
+
+    // 뱃지 업데이트
+    ['temp', 'humid', 'gas'].forEach(key => {
+        const badge = document.getElementById(key + '-mode-label');
+        badge.textContent = modes[mode];
+        badge.className = 'badge ms-2 ' + badgeClasses[mode];
+    });
+
+    // 캐시된 데이터로 차트 갱신
+    if (cachedData) renderCharts();
+}
+
+/* ── 차트 렌더링 (캐시 데이터 기반) ──────────────────────── */
+function renderCharts() {
+    const d = cachedData;
+    const m = currentMode;
+
+    updateChart('tempChart',  d.labels, d.temp[m]);
+    updateChart('humidChart', d.labels, d.humidity[m]);
+    updateChart('gasChart',   d.labels, d.gas[m]);
+
+    // 일 통계는 항상 전체 avg 기준의 min/avg/max (모드 무관)
+    const ts = dayStats(d.temp.avg);
+    document.getElementById('temp-day-avg').textContent = ts.avg + '°C';
+    document.getElementById('temp-day-min').textContent = ts.min + '°C';
+    document.getElementById('temp-day-max').textContent = ts.max + '°C';
+
+    const hs = dayStats(d.humidity.avg);
+    document.getElementById('humid-day-avg').textContent = hs.avg + '%';
+    document.getElementById('humid-day-min').textContent = hs.min + '%';
+    document.getElementById('humid-day-max').textContent = hs.max + '%';
+
+    const gs = dayStats(d.gas.avg);
+    document.getElementById('gas-day-avg').textContent = gs.avg + ' ppm';
+    document.getElementById('gas-day-min').textContent = gs.min;
+    document.getElementById('gas-day-max').textContent = gs.max;
+}
+
+/* ── API 조회 ────────────────────────────────────────────── */
+async function loadHistory() {
+    const date = document.getElementById('date-picker').value;
+    const info = document.getElementById('result-info');
+    info.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>조회 중...';
+
+    try {
+        const res  = await fetch('/history/api/sensor?date=' + date);
+        const data = await res.json();
+        cachedData = data;
+
+        renderCharts();
+
+        if (data.count > 0) {
+            info.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>'
+                + data.date + ' · 2시간 단위 · ' + data.count + '개 구간';
+        } else {
+            info.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>'
+                + data.date + ' · 데이터 없음';
+        }
+    } catch(e) {
+        info.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>조회 실패';
+        console.error(e);
+    }
+}
+
+/* ── 오늘 로드 ───────────────────────────────────────────── */
+function loadToday() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('date-picker').value = today;
+    document.getElementById('date-picker').max   = today;
+    loadHistory();
+}
+
+window.addEventListener('DOMContentLoaded', loadToday);
+</script>
+{% endblock %}

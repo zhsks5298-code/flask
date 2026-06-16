@@ -1,0 +1,65 @@
+{% extends base_template|default("base.html") %}
+{% block title %}감사 로그{% endblock %}
+{% block content %}
+
+<h4 class="mb-3"><i class="bi bi-shield-lock"></i> 감사 로그 (ALCOA+)</h4>
+<p class="text-muted small mb-4">hash chain으로 무결성이 보장된 이벤트 기록 (maintainer 이상 열람 가능)</p>
+
+<table class="table table-hover small">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>시간</th>
+            <th>타입</th>
+            <th>심각도</th>
+            <th>소스</th>
+            <th>메시지</th>
+            <th>작성자</th>
+            <th>Hash</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs.items %}
+        <tr>
+            <td>{{ log.id }}</td>
+            <td class="text-nowrap">{{ log.timestamp.strftime('%m-%d %H:%M:%S') }}</td>
+            <td><span class="text-info fw-bold">{{ log.event_type }}</span></td>
+            <td>
+                <span class="badge bg-{% if log.severity == 'critical' or log.severity == 'emergency' %}danger{% elif log.severity == 'warning' %}warning text-dark{% else %}info{% endif %}">
+                    {{ log.severity }}
+                </span>
+            </td>
+            <td class="text-muted">{{ log.source }}</td>
+            <td>{{ log.message }}</td>
+            <td>{{ log.actor }}</td>
+            <td>
+                {% if log.record_hash %}
+                <code title="{{ log.record_hash }}">{{ log.record_hash[:12] }}...</code>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">감사 로그가 없습니다.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if logs.has_prev or logs.has_next %}
+<nav>
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not logs.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ logs.prev_num }}">이전</a>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link">{{ logs.page }} / {{ logs.pages }}</span>
+        </li>
+        <li class="page-item {% if not logs.has_next %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ logs.next_num }}">다음</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
